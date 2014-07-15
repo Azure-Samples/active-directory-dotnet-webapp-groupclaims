@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfArrayOfRoleMapElem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <ArrayOfRoleMapElem>
+    <RoleMapElem>
+      <ObjectId>1895e533-0d19-4230-94cf-31040c145acb</ObjectId>
+      <Role>Admin</Role>
+      <MappingId>1</MappingId>
+    </RoleMapElem>
+  </ArrayOfRoleMapElem>
+  <ArrayOfRoleMapElem>
+    <RoleMapElem>
+      <ObjectId>8fc5445c-c502-40e8-b23f-839f85fe52cc</ObjectId>
+      <Role>Observer</Role>
+      <MappingId>0</MappingId>
+    </RoleMapElem>
+  </ArrayOfRoleMapElem>
+  <ArrayOfRoleMapElem />
+  <ArrayOfRoleMapElem />
+</ArrayOfArrayOfRoleMapElem>

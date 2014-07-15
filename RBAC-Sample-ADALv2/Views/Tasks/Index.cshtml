@@ -1,0 +1,53 @@
+﻿@{
+    ViewBag.Title = "Tasks";
+}
+
+<h2>Tasks</h2>
+
+@if (User.Identity.IsAuthenticated)
+{
+    using (Html.BeginForm("TaskSubmit", "Tasks", FormMethod.Post))
+    {
+        <table>
+            <tr>
+                <th>Task</th>
+                <th>Status</th>
+            </tr>
+
+            @foreach (RBACSampleADALv2.Models.TaskElem task in (List<RBACSampleADALv2.Models.TaskElem>)ViewData["tasks"])
+            {
+                <tr>
+                    <td>@task.Task</td>
+                    @if (User.IsInRole("Approver") || User.IsInRole("Admin"))
+                    {
+                        <td>
+                            <select name="@task.TaskId">
+                                @foreach (string str in (string[])task.GetStatusMenu())
+                                {
+                                    <option value="@str"> @str</option>
+                                }
+                            </select>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>@task.Status</td>
+                    }
+                </tr>
+            }
+
+        </table>
+
+        if (User.IsInRole("Admin") || User.IsInRole("Writer"))
+        {
+            <p>Add New Task: <input type="text" name="newtask"></p>
+        }
+
+        if (User.IsInRole("Admin") || User.IsInRole("Writer") || User.IsInRole("Approver"))
+        {
+            <input type="submit" value="UpdateTasks" />
+        }
+
+    }
+}
+
