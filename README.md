@@ -59,7 +59,7 @@ If you already have a user account with Global Administrator rights in your Azur
 10. While still in the Azure portal, click the Configure tab of your application.
 11. Find the Client ID value and copy it aside, you will need this later when configuring your application.
 12. Create a new key for the application.  Save the configuration so you can view the key value.  Save this aside for when you configure the project in Visual Studio.
-13. In the Permissions to Other Applications configuration section, ensure that "Read Directory Data" is selected under "application permissions" and that both "Access your organization's directory" and "Enable sign-on and read user's profiles" are selected under "Delegated permissions."  Save the configuration.
+13. In the Permissions to Other Applications configuration section, ensure that "Read Directory Data" is selected under "Application permissions" and that both "Access your organization's directory" and "Enable sign-on and read user's profiles" are selected under "Delegated permissions."  Save the configuration.
 
 ### Step 4:  Configure the sample to use your Azure AD tenant
 
