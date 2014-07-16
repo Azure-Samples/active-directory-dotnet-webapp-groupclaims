@@ -1,0 +1,36 @@
+﻿@{
+    ViewBag.Title = "Index";
+}
+
+@using Microsoft.Azure.ActiveDirectory.GraphClient
+@model IEnumerable<Group>
+
+<h2>Groups</h2>
+
+<table id="directoryObjects" class="table table-bordered table-striped">
+    <tr>
+        <th>
+            DisplayName
+        </th>
+        <th>
+            ObjectId
+        </th>
+    </tr>
+    @foreach (var item in Model)
+    {
+        var group = item as Group;
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => group.DisplayName)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => group.ObjectId)
+            </td>
+        </tr>
+    }
+</table>
+
+@if (ViewBag.ErrorMessage == "AuthorizationRequired")
+{
+    <p>You have to sign-in to see Groups. Click @Html.ActionLink("here", "Index", "Groups", new { reauth = true }, null) to sign-in.</p>
+}

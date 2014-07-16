@@ -1,0 +1,79 @@
+﻿@{
+    ViewBag.Title = "Index";
+}
+
+@if (User.Identity.IsAuthenticated && (ViewBag.ErrorMessage == null || ViewBag.ErrorMessage != "AuthorizationRequired"))
+{
+    <h2>Assign User Roles</h2>
+
+    //Form to Assign a New RBACSampleADALv2
+    using (Html.BeginForm("AssignRole", "Roles", FormMethod.Post))
+    {
+        <p>Enter User Principal or Group Name: <input type="text" name="name"></p>
+        <p>
+            Select Role:
+            <select name="roletype">
+                @foreach (string str in (string[])ViewData["roles"])
+                {
+                    <option value="@str"> @str</option>
+                }
+            </select>
+        </p>
+
+        <input type="submit" value="Assign Role" />
+    }
+
+    //List out users in each role with checkboxes for removing roles
+    using (Html.BeginForm("RemoveRole", "Roles", FormMethod.Post))
+    {
+        //foreach app role
+        foreach (string str in (string[])ViewData["roles"])
+        {
+            //if there exists at least 1 entry in that role
+            if (ViewData[@str + "List"] != null && ((List<RBACSampleADALv2.Models.RoleMapElem>)ViewData[@str + "List"]).Count > 0)
+            {
+                <h3>@str</h3>
+
+                <table class="table table-bordered table-striped">
+                    <tr>
+                        <th>Name</th>
+                        <th>ObjectID</th>
+                        <th>Delete</th>
+
+                    </tr>
+
+                    @*for each mapping entry in that role*@
+                    @foreach (RBACSampleADALv2.Models.RoleMapElem mapping in (List<RBACSampleADALv2.Models.RoleMapElem>)ViewData[@str + "List"])
+                    {
+                        <tr>
+                            <td>
+                                @if ((((Dictionary<string, string>)ViewData["nameDict"])[@mapping.ObjectId]) == null)
+                                {
+                                    <span style="color: red;">Object has been deleted</span>
+                                }
+                                else
+                                {
+                                    @(((Dictionary<string, string>)ViewData["nameDict"])[@mapping.ObjectId])
+                                }
+                            </td>
+                            <td>
+                                @mapping.ObjectId
+                            </td>
+                            <td>
+                                <input type="checkbox" name="@mapping.MappingId" value="delete" />
+                            </td>
+                        </tr>
+                    }
+                </table>
+            }
+        }
+
+        <input type="submit" value="Remove Roles" />
+    }
+
+}
+
+@if (ViewBag.ErrorMessage == "AuthorizationRequired")
+{
+    <p>You have to sign-in to see Roles. Click @Html.ActionLink("here", "Index", "Roles", new { reauth = true }, null) to sign-in.</p>
+}

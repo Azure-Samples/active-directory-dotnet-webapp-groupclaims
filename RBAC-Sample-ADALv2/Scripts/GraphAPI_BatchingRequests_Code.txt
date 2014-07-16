@@ -1,0 +1,40 @@
+//TODO: Enable/Test Batching Requests???
+            //Expression<Action>[] expArray = new Expression<Action>[5];
+            //int count = 0;
+            //IEnumerator<Claim> claimEnum = ClaimsPrincipal.Current.FindAll("Group").GetEnumerator();
+            //while (claimEnum.MoveNext())
+            //{
+            //    Expression<Action> exp = () => graphConnection.Get<Group>(claimEnum.Current.Value);
+            //    if (count < 5)
+            //    {
+            //        expArray[count] = exp;
+            //        count++;
+            //    }
+            //    if (count == 5)
+            //    {
+            //        IList<BatchResponseItem> groupList = graphConnection.ExecuteBatch(expArray);
+            //        foreach (BatchResponseItem batchResp in groupList)
+            //        {
+            //            foreach (var group in batchResp.ResultSet.Results)
+            //            {
+            //                mygroups.Add(group.TokenDictionary["displayName"].ToString());
+            //            }
+            //        }
+            //        count = 0;
+            //        expArray = new Expression<Action>[5];
+            //    }
+            //}
+            //if (count > 0)
+            //{
+            //    Expression<Action>[] cleanExpArray = new Expression<Action>[count];
+            //    for (int i = 0; i < count; i++)
+            //        cleanExpArray[i] = expArray[i];
+            //    IList<BatchResponseItem> groupList = graphConnection.ExecuteBatch(cleanExpArray);
+            //    foreach (BatchResponseItem batchResp in groupList)
+            //    {
+            //        foreach (var group in batchResp.ResultSet.Results)
+            //        {
+            //            mygroups.Add(group.TokenDictionary["displayName"].ToString());
+            //        }
+            //    }
+            //}

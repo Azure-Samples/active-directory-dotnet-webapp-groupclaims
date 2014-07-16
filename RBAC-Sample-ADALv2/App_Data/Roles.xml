@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfArrayOfRoleMapElem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <ArrayOfRoleMapElem>
+    <RoleMapElem>
+      <ObjectId>1895e533-0d19-4230-94cf-31040c145acb</ObjectId>
+      <Role>Admin</Role>
+      <MappingId>1</MappingId>
+    </RoleMapElem>
+    <RoleMapElem>
+      <ObjectId>c16fe796-7c42-4197-b3c9-2c5ccd6f9524</ObjectId>
+      <Role>Admin</Role>
+      <MappingId>2</MappingId>
+    </RoleMapElem>
+    <RoleMapElem>
+      <ObjectId>ed07f327-2fe7-432e-ac42-93e5eb513718</ObjectId>
+      <Role>Admin</Role>
+      <MappingId>6</MappingId>
+    </RoleMapElem>
+  </ArrayOfRoleMapElem>
+  <ArrayOfRoleMapElem>
+    <RoleMapElem>
+      <ObjectId>dbdb97fb-8625-44a7-a794-ca62d01bdfa6</ObjectId>
+      <Role>Observer</Role>
+      <MappingId>1</MappingId>
+    </RoleMapElem>
+    <RoleMapElem>
+      <ObjectId>511e9b90-4b0a-4773-9ea0-9f06a7f20584</ObjectId>
+      <Role>Observer</Role>
+      <MappingId>3</MappingId>
+    </RoleMapElem>
+  </ArrayOfRoleMapElem>
+  <ArrayOfRoleMapElem>
+    <RoleMapElem>
+      <ObjectId>0827e55c-c9e1-46bc-ad2d-4f0c6e2e1298</ObjectId>
+      <Role>Writer</Role>
+      <MappingId>4</MappingId>
+    </RoleMapElem>
+  </ArrayOfRoleMapElem>
+  <ArrayOfRoleMapElem>
+    <RoleMapElem>
+      <ObjectId>7c14631a-8eb6-4a38-a0ba-3922dbc4ff87</ObjectId>
+      <Role>Approver</Role>
+      <MappingId>5</MappingId>
+    </RoleMapElem>
+  </ArrayOfRoleMapElem>
+</ArrayOfArrayOfRoleMapElem>
