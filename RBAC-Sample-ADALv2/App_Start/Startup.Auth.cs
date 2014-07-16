@@ -82,15 +82,6 @@ namespace RBACSampleADALv2
                             AddRolesToAuthTicket(userObjectId, result.AccessToken, context.AuthenticationTicket.Identity);
 
                             return Task.FromResult(0);
-                        },
-
-                        // AAD Group Claims are only available in test slice at the moment, 
-                        // so we must append a query string parameter to our Authority URL.
-                        // RedirectToIdentityProvider is called just before sending initial OpenIDConnectMessage Request. 
-                        RedirectToIdentityProvider = context =>
-                        {
-                            context.ProtocolMessage.SetParameter("slice", "testslice");
-                            return Task.FromResult(0);
                         }
                     }
                 });
