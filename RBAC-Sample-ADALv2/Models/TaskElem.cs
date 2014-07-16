@@ -9,9 +9,17 @@ namespace RBACSampleADALv2.Models
 {
     public class TaskElem
     {
+        /// <summary>
+        /// The Tasks.xml file location.
+        /// </summary>
         public static string TasksXMLFilePath = Path.Combine(HostingEnvironment.ApplicationPhysicalPath, "App_Data", "tasks.xml");
+
+        /// <summary>
+        /// The possible task statuses in our Task Tracker Application.
+        /// </summary>
         public static String[] taskStatus = { "NotStarted", "InProgress", "Complete", "Blocked" };
 
+        //Every Task entry has a Task, a Status, and a TaskID
         public string Task { get; set; }
         public string Status { get; set; }
         public string TaskId { get; set; }

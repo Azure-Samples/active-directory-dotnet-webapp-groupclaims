@@ -32,5 +32,5 @@
 
 @if (ViewBag.ErrorMessage == "AuthorizationRequired")
 {
-    <p>You have to sign-in to see Users. Click @Html.ActionLink("here", "Index", "Groups", new { reauth = true }, null) to sign-in.</p>
+    <p>You have to sign-in to see Groups. Click @Html.ActionLink("here", "Index", "Groups", new { reauth = true }, null) to sign-in.</p>
 }

@@ -22,7 +22,7 @@
   </TaskElem>
   <TaskElem>
     <Task>Writer Adding Task</Task>
-    <Status>Complete</Status>
+    <Status>NotStarted</Status>
     <TaskId>4</TaskId>
   </TaskElem>
 </ArrayOfTaskElem>

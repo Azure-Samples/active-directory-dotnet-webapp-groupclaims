@@ -1,72 +1,80 @@
-﻿using Microsoft.IdentityModel.Clients.ActiveDirectory;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Web;
+using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
 namespace RBACSampleADALv2.Utils
 {
-
-
-            //System.Web.HttpContext.Current.Session[CachePrefix + "RefreshToken"] = value;
-
-            //return System.Web.HttpContext.Current.Session[CachePrefix + "RefreshToken"];
-
-            //System.Web.HttpContext.Current.Session.Remove(CachePrefix + "RefreshToken");
-      
-
-
-    public class NaiveSessionCache: TokenCache
+    public class NaiveSessionCache : TokenCache
     {
         private static readonly object FileLock = new object();
-        string UserObjectId = string.Empty;
-        string CacheId = string.Empty;
+        private readonly string CacheId = string.Empty;
+        private string UserObjectId = string.Empty;
+
+        /// <summary>
+        /// Constructor that registers notification callbacks and loads the token cache.
+        /// In this application, we are configuring a token cache using cookies so that our
+        /// access token can be accessed throughout our application for various needs.
+        /// </summary>
+        /// <param name="userId">The user's objectID</param>
         public NaiveSessionCache(string userId)
         {
             UserObjectId = userId;
             CacheId = UserObjectId + "_TokenCache";
 
-            this.AfterAccess = AfterAccessNotification;
-            this.BeforeAccess = BeforeAccessNotification;
+            AfterAccess = AfterAccessNotification;
+            BeforeAccess = BeforeAccessNotification;
             lock (FileLock)
             {
-                var cache = HttpContext.Current.Session[CacheId];
-                this.Deserialize(cache != null ? ProtectedData.Unprotect((byte[])cache, null, DataProtectionScope.LocalMachine) : null);
+                object cache = HttpContext.Current.Session[CacheId];
+                Deserialize(cache != null
+                    ? ProtectedData.Unprotect((byte[]) cache, null, DataProtectionScope.LocalMachine)
+                    : null);
             }
         }
 
-        // Empties the persistent store.
+        /// <summary>
+        /// Empties the persistent store.
+        /// </summary>
         public override void Clear()
         {
             base.Clear();
-            System.Web.HttpContext.Current.Session.Remove(CacheId);
+            HttpContext.Current.Session.Remove(CacheId);
         }
 
-        // Triggered right before ADAL needs to access the cache.
-        // Reload the cache from the persistent store in case it changed since the last access.
-         void BeforeAccessNotification(TokenCacheNotificationArgs args)
+        /// <summary>
+        /// Triggered right before ADAL needs to access the cache.
+        /// Reload the cache from the persistent store in case it changed since the last access.
+        /// </summary>
+        /// <param name="args">Arguments for the TokenCacheNotification</param>
+        private void BeforeAccessNotification(TokenCacheNotificationArgs args)
         {
             lock (FileLock)
             {
-                var cache = HttpContext.Current.Session[CacheId];
-                this.Deserialize(cache != null ? ProtectedData.Unprotect((byte[])cache, null, DataProtectionScope.LocalMachine) : null);
+                object cache = HttpContext.Current.Session[CacheId];
+                Deserialize(cache != null
+                    ? ProtectedData.Unprotect((byte[]) cache, null, DataProtectionScope.LocalMachine)
+                    : null);
             }
         }
 
-        // Triggered right after ADAL accessed the cache.
-        void AfterAccessNotification(TokenCacheNotificationArgs args)
+        /// <summary>
+        /// Triggered right after ADAL accessed the cache.
+        /// </summary>
+        /// <param name="args">Arguments for the TokenCacheNotification</param>
+        private void AfterAccessNotification(TokenCacheNotificationArgs args)
         {
             // if the access operation resulted in a cache update
-            if (this.HasStateChanged)
+            if (HasStateChanged)
             {
                 lock (FileLock)
-                {                    
+                {
                     // reflect changes in the persistent store
-                    HttpContext.Current.Session[CacheId] = ProtectedData.Protect(this.Serialize(),null,DataProtectionScope.LocalMachine);
+                    HttpContext.Current.Session[CacheId] = ProtectedData.Protect(Serialize(), null,
+                        DataProtectionScope.LocalMachine);
+
                     // once the write operation took place, restore the HasStateChanged bit to false
-                    this.HasStateChanged = false;
-                }                
+                    HasStateChanged = false;
+                }
             }
         }
     }

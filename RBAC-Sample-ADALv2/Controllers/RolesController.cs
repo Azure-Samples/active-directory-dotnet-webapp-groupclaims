@@ -1,17 +1,16 @@
-﻿using RBACSampleADALv2.Helpers;
-using RBACSampleADALv2.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Linq.Expressions;
 using System.Security.Claims;
 using System.Web;
 using System.Web.Mvc;
-using RBACSampleADALv2.Utils;
+using Microsoft.Azure.ActiveDirectory.GraphClient;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Owin.Security.OpenIdConnect;
-using Microsoft.Azure.ActiveDirectory.GraphClient;
-using System.Linq.Expressions;
-using System.IdentityModel.Tokens;
+using RBACSampleADALv2.Helpers;
+using RBACSampleADALv2.Models;
+using RBACSampleADALv2.Utils;
+using ExpressionHelper = Microsoft.Azure.ActiveDirectory.GraphClient.ExpressionHelper;
 
 namespace RBACSampleADALv2.Controllers
 {
@@ -21,44 +20,47 @@ namespace RBACSampleADALv2.Controllers
         //////// ACTIONS
         ////////////////////////////////////////////////////////////////////
 
-        // GET: Roles
-        // Use Authorize attribute to allow only Admins to change role mappings
+        /// <summary>
+        /// Show the current mappings of users and groups to each application role.
+        /// Use AuthorizeAttribute to ensure only the role "Admin" can access the page.
+        /// </summary>
+        /// <returns>Role <see cref="View"/> with inputs to edit application role mappings.</returns>
         [HttpGet]
         [Authorize(Roles = "Admin")] //TODO: Bug on Github Sample (redirect loop)
         public ActionResult Index()
         {
-            //Get the Mappings from XML file
+            // Get Existing Mappings from Roles.xml
             ViewBag.Message = "RoleMappings";
             List<List<RoleMapElem>> mappings = XmlHelper.GetRoleMappingsFromXml();
 
-            //Dictionary of <ObjectID, Name> pairs
-            Dictionary<string, string> nameDict = new Dictionary<string, string>();
+            //Dictionary of <ObjectID, DisplayName> pairs
+            var nameDict = new Dictionary<string, string>();
 
             //Get the Access Token for Calling Graph API
             AuthenticationResult result = null;
             try
             {
-                string tenantId = ClaimsPrincipal.Current.FindFirst(GraphConfiguration.TenantIdClaimType).Value;
                 string userObjectId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
-                Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext authContext = new Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext(Startup.Authority,
+                var authContext = new AuthenticationContext(Startup.Authority,
                     new NaiveSessionCache(userObjectId));
-                ClientCredential credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
+                var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
                 result = authContext.AcquireTokenSilent(GraphConfiguration.GraphResourceId, credential,
                     new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
             }
             catch (Exception e)
             {
-                //if the user doesn't have an access token, they need to re-authorize
+                // If the user doesn't have an access token, they need to re-authorize
 
                 // If refresh is set to true, the user has clicked the link to be authorized again.
                 if (Request.QueryString["reauth"] == "True")
                 {
-                    //
+                    
                     // Send an OpenID Connect sign-in request to get a new set of tokens.
                     // If the user still has a valid session with Azure AD, they will not be prompted for their credentials.
                     // The OpenID Connect middleware will return to this controller after the sign-in response has been handled.
-                    //
-                    HttpContext.GetOwinContext().Authentication.Challenge(OpenIdConnectAuthenticationDefaults.AuthenticationType);
+                    
+                    HttpContext.GetOwinContext()
+                        .Authentication.Challenge(OpenIdConnectAuthenticationDefaults.AuthenticationType);
                 }
 
                 // The user needs to re-authorize.  Show them a message to that effect.
@@ -66,112 +68,86 @@ namespace RBACSampleADALv2.Controllers
                 return View();
             }
 
-            //Construct the ObjectID-->Name Dictionary, Add Lists of Mappings to ViewData
-            //for each type of role
+            // Construct the <ObjectID, DisplayName> Dictionary, Add Lists of Mappings to ViewData
+            // for each type of role
             for (int i = 0; i < mappings.Count; i++)
             {
-                //for each mapping entry in that role
+                // for each mapping entry in that role, add an entry to the NameDict
                 for (int j = 0; j < mappings[i].Count; j++)
                 {
-                    nameDict[mappings[i][j].ObjectId] = GetDisplayNameFromObjectId(result.AccessToken, mappings[i][j].ObjectId);
+                    nameDict[mappings[i][j].ObjectId] = GetDisplayNameFromObjectId(result.AccessToken,
+                        mappings[i][j].ObjectId);
                 }
-                //Ex: ViewData["AdminList"] = List<RoleMapElem>
+                
+                // Put RoleLists in ViewData to be read by view
                 ViewData[RoleMapElem.Roles[i] + "List"] = mappings[i];
             }
 
             ViewData["nameDict"] = nameDict;
             ViewData["roles"] = RoleMapElem.Roles;
             return View();
-
         }
 
+
+        /// <summary>
+        /// Adds a User/Group<-->Application Role mapping from user input form
+        /// to roles.xml if it does not already exist.
+        /// </summary>
+        /// <param name="formCollection">The user input form, containing the UPN or GroupName
+        /// of the object to grant a role.</param>
+        /// <returns>A Redirect to the Roles page.</returns>
         [HttpPost]
-        [Authorize(Roles="Admin")]
+        [Authorize(Roles = "Admin")]
         public ActionResult AssignRole(FormCollection formCollection)
         {
-            //add new role mapping assignment
+            // Check for an input name
             if (formCollection != null && formCollection["name"].Length > 0)
             {
-                //Get the Access Token for Calling Graph API
+                //Get the Access Token for Calling Graph API from the cache
                 AuthenticationResult result = null;
                 try
                 {
-                    string tenantId = ClaimsPrincipal.Current.FindFirst(GraphConfiguration.TenantIdClaimType).Value;
                     string userObjectId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
-                    Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext authContext = new Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext(Startup.Authority,
+                    var authContext = new AuthenticationContext(Startup.Authority,
                         new NaiveSessionCache(userObjectId));
-                    ClientCredential credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
+                    var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
                     result = authContext.AcquireTokenSilent(GraphConfiguration.GraphResourceId, credential,
                         new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
                 }
                 catch (Exception e)
                 {
-                    //if the user doesn't have an access token, they need to re-authorize
-
-                    // If refresh is set to true, the user has clicked the link to be authorized again.
-                    if (Request.QueryString["reauth"] == "True")
-                    {
-                        //
-                        // Send an OpenID Connect sign-in request to get a new set of tokens.
-                        // If the user still has a valid session with Azure AD, they will not be prompted for their credentials.
-                        // The OpenID Connect middleware will return to this controller after the sign-in response has been handled.
-                        //
-                        HttpContext.GetOwinContext().Authentication.Challenge(OpenIdConnectAuthenticationDefaults.AuthenticationType);
-                    }
-
                     // The user needs to re-authorize.  Show them a message to that effect.
-                    ViewBag.ErrorMessage = "AuthorizationRequired";
-                    return View();
+                    return RedirectToAction("Index", "Roles", null);
                 }
 
-                // Setup Graph API connection
-                Guid ClientRequestId = Guid.NewGuid();
-                GraphSettings graphSettings = new GraphSettings();
-                graphSettings.ApiVersion = GraphConfiguration.GraphApiVersion;
-                GraphConnection graphConnection = new GraphConnection(result.AccessToken, ClientRequestId, graphSettings);
-
-                //Search Graph API for Users by UPN
-                FilterGenerator filter = new FilterGenerator();
-                filter.QueryFilter =
-                    Microsoft.Azure.ActiveDirectory.GraphClient.ExpressionHelper.CreateConditionalExpression(
-                        typeof(User), GraphProperty.UserPrincipalName, formCollection["name"], ExpressionType.Equal);
-                PagedResults<User> pagedUserResults = graphConnection.List<User>(null, filter);
-
-                //If found, get objectID
-                string objectId = null;
-                if (pagedUserResults.Results != null && pagedUserResults.Results.Count > 0)
-                {
-                    objectId = pagedUserResults.Results[0].ObjectId;
-                }
-                //If not found, search GraphAPI for Groups by Group DisplayName
+                // Get ObjectID of User Or Group from Name provided by user
+                string objectId = GetObjectIDFromDisplayNameOrUPN(result.AccessToken, formCollection["name"]);
+                
+                // If object DNE, show an error
                 if (objectId == null)
                 {
-                    filter.QueryFilter = Microsoft.Azure.ActiveDirectory.GraphClient.ExpressionHelper.CreateConditionalExpression(
-                        typeof(Group), GraphProperty.DisplayName, formCollection["name"], ExpressionType.Equal);
-                    PagedResults<Group> pagedGroupResults = graphConnection.List<Group>(null, filter);
+                    return RedirectToAction("ShowError", "Error", new {errorMessage = "User/Group Not Found."});
+                }
 
-                    //If found, get objectID
-                    if (pagedGroupResults.Results != null && pagedGroupResults.Results.Count > 0)
-                    {
-                        objectId = pagedGroupResults.Results[0].ObjectId;
-                    }
-                }
-                //If object DNE, show an error
-                if (objectId == null)
-                {
-                    return RedirectToAction("ShowError", "Error", new { errorMessage = "User/Group Not Found." });
-                }
+                // Add the ObjectID<-->Application Role mapping if it does not already exist
                 XmlHelper.AppendRoleMappingToXml(formCollection["roletype"], objectId);
             }
 
             return RedirectToAction("Index", "Roles", null);
         }
 
+
+        /// <summary>
+        /// Removes a ObjectID<-->Application Role mapping from Roles.xml, based on input
+        /// from the user.
+        /// </summary>
+        /// <param name="formCollection">The input from the user.</param>
+        /// <returns>A redirect to the roles page.</returns>
         [HttpPost]
-        [Authorize(Roles="Admin")]
+        [Authorize(Roles = "Admin")]
         public ActionResult RemoveRole(FormCollection formCollection)
         {
-            //remove role mapping assignments marked by checkboxes
+            // Remove role mapping assignments marked by checkboxes
             XmlHelper.RemoveRoleMappingsFromXml(formCollection);
 
             return RedirectToAction("Index", "Roles", null);
@@ -181,34 +157,91 @@ namespace RBACSampleADALv2.Controllers
         //////// HELPER FUNCTIONS
         ////////////////////////////////////////////////////////////////////
 
+        /// <summary>
+        /// Queries the GraphAPI to get the DisplayName of a Group or User from its ObjectID.
+        /// </summary>
+        /// <param name="accessToken">The OpenIDConnect access token used 
+        /// to query the GraphAPI</param>
+        /// <param name="objectId">The ObjectID of the User or Group</param>
+        /// <returns>The DisplayName.</returns>
         private static string GetDisplayNameFromObjectId(string accessToken, string objectId)
         {
             // Setup Graph API connection
             Guid ClientRequestId = Guid.NewGuid();
-            GraphSettings graphSettings = new GraphSettings();
+            var graphSettings = new GraphSettings();
             graphSettings.ApiVersion = GraphConfiguration.GraphApiVersion;
-            GraphConnection graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
+            var graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
 
             try
             {
-                //Try to get a User by ObjectID
-                User user = graphConnection.Get<User>(objectId);
-                return user.DisplayName;
-
+                // Get a User by ObjectID
+                return graphConnection.Get<User>(objectId).DisplayName;
             }
             catch
             {
                 try
                 {
-                    //Try to get a Group by ObjectID
-                    Group group = graphConnection.Get<Group>(objectId);
-                    return group.DisplayName;
+                    // If the User with ObjectID DNE, Get a group with the ObjectID
+                    return graphConnection.Get<Group>(objectId).DisplayName;
                 }
                 catch
                 {
-                    return null;
+                    try
+                    {
+                        // If the User and Group with ObjectID, Get a Built-In Directory Role
+                        return graphConnection.Get<Role>(objectId).DisplayName;
+                    }
+                    catch
+                    {
+                        // If neither a User nor a Group nor a Role was found, return null
+                        return null;
+                    }
                 }
             }
         }
-    }   
+
+
+        /// <summary>
+        /// Queries the GraphAPI to get the ObjectID of a group or user from their name or UPN, respectively.
+        /// </summary>
+        /// <param name="accessToken">The OpenIDConnect access token used 
+        /// to query the GraphAPI</param>
+        /// <param name="name">The Display Name or UPN of the group or user, respectively.</param>
+        /// <returns>The ObjectID.</returns>
+        private static string GetObjectIDFromDisplayNameOrUPN(string accessToken, string name)
+        {
+            // Setup Graph API connection
+            Guid ClientRequestId = Guid.NewGuid();
+            var graphSettings = new GraphSettings();
+            graphSettings.ApiVersion = GraphConfiguration.GraphApiVersion;
+            var graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
+
+            // First, search GraphAPI for a User with corresponding UPN
+            var filter = new FilterGenerator();
+            filter.QueryFilter =
+                ExpressionHelper.CreateConditionalExpression(
+                    typeof(User), GraphProperty.UserPrincipalName, name, ExpressionType.Equal);
+            PagedResults<User> pagedUserResults = graphConnection.List<User>(null, filter);
+
+            // If found, return User ObjectID
+            if (pagedUserResults.Results != null && pagedUserResults.Results.Count > 0)
+            {
+                return pagedUserResults.Results[0].ObjectId;
+            }
+
+            // If not found, search GraphAPI for a Group with corresponding DisplayName
+            filter.QueryFilter = ExpressionHelper.CreateConditionalExpression(
+                typeof(Group), GraphProperty.DisplayName, name, ExpressionType.Equal);
+            PagedResults<Group> pagedGroupResults = graphConnection.List<Group>(null, filter);
+
+            // If found, return Group objectID
+            if (pagedGroupResults.Results != null && pagedGroupResults.Results.Count > 0)
+            {
+                return pagedGroupResults.Results[0].ObjectId;
+            }
+
+            // If object DNE, return null
+            return null;
+        }
+    }
 }

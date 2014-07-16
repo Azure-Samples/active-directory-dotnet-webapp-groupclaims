@@ -1,15 +1,16 @@
-﻿using RBACSampleADALv2.Helpers;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-using System.Web.Mvc;
+﻿using System.Web.Mvc;
+using RBACSampleADALv2.Helpers;
 
 namespace RBACSampleADALv2.Controllers
 {
     public class TasksController : Controller
     {
-        // GET: Tasks
+        /// <summary>
+        /// Lists Out the Tasks from Tasks.xml.  RBAC to editing tasks is controlled by 
+        /// the View and other controller actions.  Requires the user has at least one
+        /// of the application roles to view tasks.
+        /// </summary>
+        /// <returns>The Tasks Page.</returns>
         [HttpGet]
         [Authorize(Roles = "Admin, Observer, Writer, Approver")]
         public ActionResult Index()
@@ -19,16 +20,21 @@ namespace RBACSampleADALv2.Controllers
             return View();
         }
 
-        //TODO: Better Comments, Clean Code
-
+        
+        /// <summary>
+        /// Add a new task to Tasks.xml or Update the Status of an Existing Task.  Requires that
+        /// the user has a application role of Admin, Writer, or Approver, and only allows certain actions based
+        /// on which role(s) the user has been granted.
+        /// </summary>
+        /// <param name="formCollection">The user input including task name and status.</param>
+        /// <returns>A Redirect to the Tasks Page.</returns>
         [HttpPost]
         [Authorize(Roles = "Admin, Writer, Approver")]
         public ActionResult TaskSubmit(FormCollection formCollection)
         {
-            ActionResult result = RedirectToAction("Index", "Tasks");
             if (User.IsInRole("Admin") || User.IsInRole("Writer"))
             {
-                //add new task
+                // Add A New task to Tasks.xml
                 if (formCollection["newTask"] != null && formCollection["newTask"].Length != 0)
                 {
                     XmlHelper.AppendTaskElemToXml(formCollection);
@@ -37,11 +43,11 @@ namespace RBACSampleADALv2.Controllers
 
             if (User.IsInRole("Admin") || User.IsInRole("Approver"))
             {
-                //change status of existing task
+                // Change status of existing task
                 XmlHelper.ChangeTaskAttribute(formCollection);
             }
 
-            return result;
+            return RedirectToAction("Index", "Tasks");
         }
     }
 }
