@@ -77,7 +77,7 @@ namespace RBACSampleADALv2.Controllers
             GraphConnection graphConnection = new GraphConnection(result.AccessToken, clientRequestId, graphSettings);
 
             //Non-Batched Requests. In A Real App We Would Want to Batch Graph API requests
-            foreach (var claim in ClaimsPrincipal.Current.FindAll("Group"))
+            foreach (var claim in ClaimsPrincipal.Current.FindAll("groups"))
             {
                 try
                 {

@@ -71,13 +71,13 @@ namespace RBACSampleADALv2.Helpers
             writer.Close();
         }
 
-        public static void AppendRoleMappingToXml(FormCollection formCollection, string objectId)
+        public static void AppendRoleMappingToXml(string roletype, string objectId)
         {
             List<List<RoleMapElem>> mappings;
             int mappingId = 0;
             if (System.IO.File.Exists(RoleMapElem.RoleMapXMLFilePath))
             {
-                mappings = (List<List<RoleMapElem>>)XmlHelper.GetRoleMappingsFromXml();
+                mappings = GetRoleMappingsFromXml();
                 foreach (List<RoleMapElem> roleList in mappings)
                 {
                     mappingId += roleList.Count;
@@ -94,9 +94,14 @@ namespace RBACSampleADALv2.Helpers
 
             for (int i = 0; i < RoleMapElem.Roles.Length; i++)
             {
-                if (RoleMapElem.Roles[i].Equals(formCollection["roletype"]))
+                if (RoleMapElem.Roles[i].Equals(roletype))
                 {
-                    mappings[i].Add(new RoleMapElem(objectId, formCollection["roletype"], mappingId.ToString(CultureInfo.InvariantCulture)));
+                    foreach (RoleMapElem elem in mappings[i])
+                    {
+                        if (elem.ObjectId == objectId)
+                            break;
+                    }
+                    mappings[i].Add(new RoleMapElem(objectId, roletype, mappingId.ToString(CultureInfo.InvariantCulture)));
                 }
 
             }

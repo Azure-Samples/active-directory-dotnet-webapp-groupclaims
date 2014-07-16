@@ -161,7 +161,7 @@ namespace RBACSampleADALv2.Controllers
                 {
                     return RedirectToAction("ShowError", "Error", new { errorMessage = "User/Group Not Found." });
                 }
-                XmlHelper.AppendRoleMappingToXml(formCollection, objectId);
+                XmlHelper.AppendRoleMappingToXml(formCollection["roletype"], objectId);
             }
 
             return RedirectToAction("Index", "Roles", null);

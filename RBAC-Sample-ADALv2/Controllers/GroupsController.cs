@@ -13,6 +13,7 @@ namespace RBACSampleADALv2.Controllers
 {
     public class GroupsController : Controller
     {
+        //TODO: Change for Group Claims
         // GET: Groups
         [Authorize]
         [HttpGet]
@@ -57,6 +58,7 @@ namespace RBACSampleADALv2.Controllers
             GraphConnection graphConnection = new GraphConnection(result.AccessToken, ClientRequestId, graphSettings);
 
             PagedResults<Group> pagedReslts = graphConnection.List<Group>(null, new FilterGenerator());
+
             return View(pagedReslts.Results);
         }
         }

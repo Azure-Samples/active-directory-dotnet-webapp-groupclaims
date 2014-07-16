@@ -22,7 +22,7 @@ namespace RBACSampleADALv2.Controllers
         //TODO: Better Comments, Clean Code
 
         [HttpPost]
-        [Authorize(Roles = "Admin, Writer, Approver")] //TODO: test out functionality
+        [Authorize(Roles = "Admin, Writer, Approver")]
         public ActionResult TaskSubmit(FormCollection formCollection)
         {
             ActionResult result = RedirectToAction("Index", "Tasks");

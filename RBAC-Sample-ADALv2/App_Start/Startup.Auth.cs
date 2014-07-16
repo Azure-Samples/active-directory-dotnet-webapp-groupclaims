@@ -17,6 +17,7 @@ using System.Security.Claims;
 using Microsoft.Azure.ActiveDirectory.GraphClient;
 using RBACSampleADALv2.Models;
 using RBACSampleADALv2.Helpers;
+using System.Linq.Expressions;
 
 namespace RBACSampleADALv2
 {
@@ -50,10 +51,10 @@ namespace RBACSampleADALv2
             app.UseOpenIdConnectAuthentication(
                 new OpenIdConnectAuthenticationOptions
                 {
+                    
                     ClientId = clientId,
                     Authority = Authority,
                     PostLogoutRedirectUri = postLogoutRedirectUri,
-
                     Notifications = new OpenIdConnectAuthenticationNotifications()
                     {
                         //
@@ -64,16 +65,21 @@ namespace RBACSampleADALv2
                             var code = context.Code;
 
                             ClientCredential credential = new ClientCredential(clientId, appKey);
-                            string userObjectID =
-                                context.AuthenticationTicket.Identity.FindFirst(
+                            string userObjectID = context.AuthenticationTicket.Identity.FindFirst(
                                     "http://schemas.microsoft.com/identity/claims/objectidentifier").Value;
                             //string userObjectID = ClaimsPrincipal.Current.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier").Value; //TODO: Bug on Github Sample?
                             AuthenticationContext authContext = new AuthenticationContext(Authority, new NaiveSessionCache(userObjectID));
                             AuthenticationResult result = authContext.AcquireTokenByAuthorizationCode(
                                 code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential, graphResourceId);
 
-                            addExistingRolesToClaimPrincipal(credential, userObjectID, authContext, result.AccessToken, context.AuthenticationTicket.Identity);
+                            addRolesToAuthTicket(credential, userObjectID, authContext, result.AccessToken, context.AuthenticationTicket.Identity);
 
+                            return Task.FromResult(0);
+                        },
+
+                        RedirectToIdentityProvider = (context) =>
+                        {
+                            context.ProtocolMessage.SetParameter("slice", "testslice");
                             return Task.FromResult(0);
                         }
                     }
@@ -81,46 +87,30 @@ namespace RBACSampleADALv2
                 });
         }
 
-        private void addExistingRolesToClaimPrincipal(ClientCredential credential, string userObjectId, AuthenticationContext authContext, string accessToken, ClaimsIdentity claimsIdentity)
+        private void addRolesToAuthTicket(ClientCredential credential, string userObjectId, AuthenticationContext authContext, string accessToken, ClaimsIdentity claimsIdentity)
         {
-            //Call the Graph API for Role and Group Membership //TODO: Change this shit to use Role & Group Claims (this is the old way)
-            PagedResults<GraphObject> builtInRolesAndGroups = new PagedResults<GraphObject>();
-            try
+            List<String> listOfGroupObjectIDs = new List<String>();
+
+            //Check if an Overage Claim came through
+            if (claimsIdentity.FindFirst("_claim_sources") != null)
+                listOfGroupObjectIDs = getGroupsFromGraphAPI(accessToken, userObjectId, claimsIdentity);
+            else
             {
-                // Setup Graph API connection
-                Guid ClientRequestId = Guid.NewGuid();
-                GraphSettings graphSettings = new GraphSettings();
-                graphSettings.ApiVersion = GraphConfiguration.GraphApiVersion;
-                GraphConnection graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
+                //If not, Add Group Claims to List To Be Compared to the XML
+                foreach (Claim groupClaim in claimsIdentity.FindAll("groups"))
+                    listOfGroupObjectIDs.Add(groupClaim.Value);
 
-                //Try to get a User by ObjectID
-                User user = graphConnection.Get<User>(userObjectId);
-                builtInRolesAndGroups = graphConnection.GetLinkedObjects(user, LinkProperty.MemberOf,
-                    null);
-
-                //TODO: ^^That's a Paged Results... Use a While Loop
+                //Also, we need to add the Global Administrator Group to the XML as Admins
+                //Alternatively, you could manually add the Global Administrator Group to the XML the first time only, saving GraphAPI calls
+                checkForGlobalAdmin(accessToken, claimsIdentity);
             }
-            catch (Exception e) {}
-
-            List<String> listOfGroupObjectIds = new List<String>();
-            foreach (var roleOrGroup in builtInRolesAndGroups.Results)
-            {
-                if (roleOrGroup.ODataTypeName == "Microsoft.WindowsAzure.ActiveDirectory.Role" && roleOrGroup.TokenDictionary["displayName"].ToString() == "Company Administrator")
-                {
-                    claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, "Admin", ClaimValueTypes.String, "RBAC-Sample-ADALv2-App"));
-                }
-                else if (roleOrGroup.ODataTypeName == "Microsoft.WindowsAzure.ActiveDirectory.Group")
-                {
-                    listOfGroupObjectIds.Add(roleOrGroup.ObjectId);
-                    claimsIdentity.AddClaim(new Claim("Group", roleOrGroup.ObjectId, ClaimValueTypes.String, "AAD-Tenant-Security-Groups"));
-
-                }
-            }
-
-            foreach (string role in getRoles(userObjectId, listOfGroupObjectIds))
+            
+            //Add Application Roles to AuthTicket
+            foreach (string role in getRoles(userObjectId, listOfGroupObjectIDs))
             {
                 //Store the user's application roles as claims of type Role
-                claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role, ClaimValueTypes.String, "RBAC-Sample-ADALv2-App"));
+                claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role, ClaimValueTypes.String,
+                    "RBAC-Sample-ADALv2-App"));
             }
         }
 
@@ -144,6 +134,72 @@ namespace RBACSampleADALv2
                 }
             }
             return roles;
+        }
+
+
+        private List<String> getGroupsFromGraphAPI(string accessToken, string userObjectId, ClaimsIdentity claimsIdentity)
+        {
+            //Call the Graph API for Role and Group Membership
+            PagedResults<GraphObject> pagedResults = new PagedResults<GraphObject>();
+            List<GraphObject> builtInRolesAndGroups = new List<GraphObject>();
+            List<String> listOfGroupObjectIDs = new List<String>();
+
+            try
+            {
+                // Setup Graph API connection
+                Guid ClientRequestId = Guid.NewGuid();
+                GraphSettings graphSettings = new GraphSettings();
+                graphSettings.ApiVersion = GraphConfiguration.GraphApiVersion;
+                GraphConnection graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
+
+                //Try to get a User by ObjectID
+                User user = graphConnection.Get<User>(userObjectId);
+                pagedResults = graphConnection.GetLinkedObjects(user, LinkProperty.MemberOf, null); //TODO: Feature Suggestion. Weird to Get Role & Group Objects as Group Claims. Yes, I know /GetMemberObjects is there. 2 different ObjectIds for "Company Administrator" Role object
+                builtInRolesAndGroups.AddRange(pagedResults.Results);
+                while (!pagedResults.IsLastPage)
+                {
+                    pagedResults = graphConnection.GetLinkedObjects(user, LinkProperty.MemberOf, pagedResults.PageToken);
+                    builtInRolesAndGroups.AddRange(pagedResults.Results);
+                }
+            }
+            catch (Exception e) { }
+
+            foreach (var roleOrGroup in builtInRolesAndGroups)
+            {
+                if (roleOrGroup.ODataTypeName == "Microsoft.WindowsAzure.ActiveDirectory.Role" && roleOrGroup.TokenDictionary["displayName"].ToString() == "Company Administrator")
+                {
+                    claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, "Admin", ClaimValueTypes.String, "RBAC-Sample-ADALv2-App"));
+                }
+                else if (roleOrGroup.ODataTypeName == "Microsoft.WindowsAzure.ActiveDirectory.Group")
+                {
+                    listOfGroupObjectIDs.Add(roleOrGroup.ObjectId);
+                    claimsIdentity.AddClaim(new Claim("groups", roleOrGroup.ObjectId, ClaimValueTypes.String, "AAD-Tenant-Security-Groups"));
+
+                }
+            }
+
+            return listOfGroupObjectIDs;
+        }
+
+        private void checkForGlobalAdmin(string accessToken, ClaimsIdentity claimsIdentity)
+        {
+            // Setup Graph API connection
+            Guid ClientRequestId = Guid.NewGuid();
+            GraphSettings graphSettings = new GraphSettings();
+            graphSettings.ApiVersion = GraphConfiguration.GraphApiVersion;
+            GraphConnection graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
+
+            //Check if any of the group claims are actually the "Company Administrator" built in role claim, and add to XML.
+            foreach (Claim groupClaim in claimsIdentity.FindAll("groups"))
+            {
+                try
+                {
+                    Role resultRole = graphConnection.Get<Role>(groupClaim.Value);
+                    if (resultRole.DisplayName == "Company Administrator")
+                        XmlHelper.AppendRoleMappingToXml("Admin", groupClaim.Value);
+                }
+                catch (Exception e) { }
+            }
         }
     }
 }
