@@ -39,7 +39,7 @@ Every Azure subscription has an associated Azure Active Directory tenant.  If yo
 
 From your shell or command line:
 
-`git clone git@github.com:AzureADSamples/WebApp-RBAC-DotNet.git`
+`git clone https://github.com/AzureADSamples/WebApp-RBAC-DotNet.git`
 
 ### Step 2:  Create a user account in your Azure Active Directory tenant
 
