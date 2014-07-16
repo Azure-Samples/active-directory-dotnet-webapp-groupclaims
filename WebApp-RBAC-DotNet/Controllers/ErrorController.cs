@@ -1,6 +1,6 @@
 ﻿using System.Web.Mvc;
 
-namespace RBACSampleADALv2.Controllers
+namespace WebAppRBACDotNet.Controllers
 {
     public class ErrorController : Controller
     {

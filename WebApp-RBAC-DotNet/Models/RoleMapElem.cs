@@ -5,7 +5,7 @@ using System.Linq;
 using System.Web;
 using System.Web.Hosting;
 
-namespace RBACSampleADALv2.Models
+namespace WebAppRBACDotNet.Models
 {
     public class RoleMapElem
     {

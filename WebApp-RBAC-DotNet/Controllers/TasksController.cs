@@ -1,7 +1,7 @@
 ﻿using System.Web.Mvc;
-using RBACSampleADALv2.Helpers;
+using WebAppRBACDotNet.Helpers;
 
-namespace RBACSampleADALv2.Controllers
+namespace WebAppRBACDotNet.Controllers
 {
     public class TasksController : Controller
     {

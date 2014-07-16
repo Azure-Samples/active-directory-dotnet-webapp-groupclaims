@@ -19,9 +19,9 @@ using System.Threading.Tasks;
 using Microsoft.Owin;
 using Owin;
 
-[assembly: OwinStartup(typeof(RBACSampleADALv2.Startup))]
+[assembly: OwinStartup(typeof(WebAppRBACDotNet.Startup))]
 
-namespace RBACSampleADALv2
+namespace WebAppRBACDotNet
 {
     public partial class Startup
     {

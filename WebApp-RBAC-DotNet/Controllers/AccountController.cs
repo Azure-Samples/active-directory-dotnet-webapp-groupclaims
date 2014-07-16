@@ -5,9 +5,9 @@ using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Owin.Security;
 using Microsoft.Owin.Security.Cookies;
 using Microsoft.Owin.Security.OpenIdConnect;
-using RBACSampleADALv2.Utils;
+using WebAppRBACDotNet.Utils;
 
-namespace RBACSampleADALv2.Controllers
+namespace WebAppRBACDotNet.Controllers
 {
     public class AccountController : Controller
     {

@@ -6,10 +6,10 @@ using System.Web.Mvc;
 using Microsoft.Azure.ActiveDirectory.GraphClient;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Owin.Security.OpenIdConnect;
-using RBACSampleADALv2.Models;
-using RBACSampleADALv2.Utils;
+using WebAppRBACDotNet.Models;
+using WebAppRBACDotNet.Utils;
 
-namespace RBACSampleADALv2.Controllers
+namespace WebAppRBACDotNet.Controllers
 {
     public class HomeController : Controller
     {

@@ -1,6 +1,6 @@
 ﻿using System.Web.Optimization;
 
-namespace RBACSampleADALv2
+namespace WebAppRBACDotNet
 {
     public class BundleConfig
     {

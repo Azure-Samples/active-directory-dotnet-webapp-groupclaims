@@ -1,7 +1,7 @@
 ﻿using System.Web.Mvc;
 using System.Web.Routing;
 
-namespace RBACSampleADALv2
+namespace WebAppRBACDotNet
 {
     public class RouteConfig
     {

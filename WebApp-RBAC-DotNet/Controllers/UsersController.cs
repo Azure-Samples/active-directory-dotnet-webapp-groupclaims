@@ -5,10 +5,10 @@ using System.Web.Mvc;
 using Microsoft.Azure.ActiveDirectory.GraphClient;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Owin.Security.OpenIdConnect;
-using RBACSampleADALv2.Utils;
+using WebAppRBACDotNet.Utils;
 using System.Collections.Generic;
 
-namespace RBACSampleADALv2.Controllers
+namespace WebAppRBACDotNet.Controllers
 {
     public class UsersController : Controller
     {

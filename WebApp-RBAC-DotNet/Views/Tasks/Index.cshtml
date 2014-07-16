@@ -14,7 +14,7 @@
                 <th>Status</th>
             </tr>
 
-            @foreach (RBACSampleADALv2.Models.TaskElem task in (List<RBACSampleADALv2.Models.TaskElem>)ViewData["tasks"])
+            @foreach (WebAppRBACDotNet.Models.TaskElem task in (List<WebAppRBACDotNet.Models.TaskElem>)ViewData["tasks"])
             {
                 <tr>
                     <td>@task.Task</td>

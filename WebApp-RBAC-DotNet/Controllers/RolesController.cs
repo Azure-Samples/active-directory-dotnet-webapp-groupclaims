@@ -7,12 +7,12 @@ using System.Web.Mvc;
 using Microsoft.Azure.ActiveDirectory.GraphClient;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Owin.Security.OpenIdConnect;
-using RBACSampleADALv2.Helpers;
-using RBACSampleADALv2.Models;
-using RBACSampleADALv2.Utils;
+using WebAppRBACDotNet.Helpers;
+using WebAppRBACDotNet.Models;
+using WebAppRBACDotNet.Utils;
 using ExpressionHelper = Microsoft.Azure.ActiveDirectory.GraphClient.ExpressionHelper;
 
-namespace RBACSampleADALv2.Controllers
+namespace WebAppRBACDotNet.Controllers
 {
     public class RolesController : Controller
     {

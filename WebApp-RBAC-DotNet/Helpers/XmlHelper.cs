@@ -5,9 +5,9 @@ using System.IO;
 using System.Web.Mvc;
 using System.Xml;
 using System.Xml.Serialization;
-using RBACSampleADALv2.Models;
+using WebAppRBACDotNet.Models;
 
-namespace RBACSampleADALv2.Helpers
+namespace WebAppRBACDotNet.Helpers
 {
     public class XmlHelper
     {

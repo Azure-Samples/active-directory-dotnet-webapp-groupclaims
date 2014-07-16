@@ -4,7 +4,7 @@ using System.Configuration;
 using System.Linq;
 using System.Web;
 
-namespace RBACSampleADALv2.Utils
+namespace WebAppRBACDotNet.Utils
 {
     internal static class GraphConfiguration
     {

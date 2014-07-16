@@ -2,7 +2,7 @@
 using System.Web.Mvc;
 using System.Web.Routing;
 
-namespace RBACSampleADALv2
+namespace WebAppRBACDotNet
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, Inherited = true, AllowMultiple = true)]
     public class AuthorizeAttribute : System.Web.Mvc.AuthorizeAttribute

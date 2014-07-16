@@ -12,11 +12,11 @@ using Microsoft.Owin.Security;
 using Microsoft.Owin.Security.Cookies;
 using Microsoft.Owin.Security.OpenIdConnect;
 using Owin;
-using RBACSampleADALv2.Helpers;
-using RBACSampleADALv2.Models;
-using RBACSampleADALv2.Utils;
+using WebAppRBACDotNet.Helpers;
+using WebAppRBACDotNet.Models;
+using WebAppRBACDotNet.Utils;
 
-namespace RBACSampleADALv2
+namespace WebAppRBACDotNet
 {
     public partial class Startup
     {

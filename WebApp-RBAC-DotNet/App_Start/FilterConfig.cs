@@ -1,6 +1,6 @@
 ﻿using System.Web.Mvc;
 
-namespace RBACSampleADALv2
+namespace WebAppRBACDotNet
 {
     public class FilterConfig
     {

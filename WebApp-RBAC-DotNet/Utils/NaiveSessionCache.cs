@@ -2,7 +2,7 @@
 using System.Web;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
-namespace RBACSampleADALv2.Utils
+namespace WebAppRBACDotNet.Utils
 {
     public class NaiveSessionCache : TokenCache
     {

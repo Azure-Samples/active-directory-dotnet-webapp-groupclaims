@@ -6,7 +6,7 @@
 {
     <h2>Assign User Roles</h2>
 
-    //Form to Assign a New RBACSampleADALv2
+    //Form to Assign a New WebAppRBACDotNet
     using (Html.BeginForm("AssignRole", "Roles", FormMethod.Post))
     {
         <p>Enter User Principal or Group Name: <input type="text" name="name"></p>
@@ -30,7 +30,7 @@
         foreach (string str in (string[])ViewData["roles"])
         {
             //if there exists at least 1 entry in that role
-            if (ViewData[@str + "List"] != null && ((List<RBACSampleADALv2.Models.RoleMapElem>)ViewData[@str + "List"]).Count > 0)
+            if (ViewData[@str + "List"] != null && ((List<WebAppRBACDotNet.Models.RoleMapElem>)ViewData[@str + "List"]).Count > 0)
             {
                 <h3>@str</h3>
 
@@ -43,7 +43,7 @@
                     </tr>
 
                     @*for each mapping entry in that role*@
-                    @foreach (RBACSampleADALv2.Models.RoleMapElem mapping in (List<RBACSampleADALv2.Models.RoleMapElem>)ViewData[@str + "List"])
+                    @foreach (WebAppRBACDotNet.Models.RoleMapElem mapping in (List<WebAppRBACDotNet.Models.RoleMapElem>)ViewData[@str + "List"])
                     {
                         <tr>
                             <td>
