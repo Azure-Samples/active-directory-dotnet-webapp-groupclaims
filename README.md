@@ -8,7 +8,7 @@ For more information about how the protocols work in this scenario and other sce
 ##About The Sample
 If you would like to get started immediately, skip this section and jump to *How To Run The Sample*. 
 
-In this MVC 5 web application, we build an extremely simple "Task Tracker" application that allows users to create, read, update, and delete tasks.  We would like to restrict access to certain functionality to some users, while allowing access to others. For instance, we do not want every user to be able to create a task.
+This MVC 5 web application is an extremely simple "Task Tracker" application that allows users to create, read, update, and delete tasks.  Within the application, access to certain functionalities is restricted to different subsets of users. For instance, not every user has the ability to create a task.
 
 This kind of access control or authorization is implemented using role based access control (RBAC).  When using RBAC, an administrator grants permissions to roles, not to individual users. The administrator can then assign roles to different users and control who has access to what content and functionality.  Our Task Tracker application defines four *Application Roles*:
 - Admin: Has the ability to perform all actions, as well as manage the Application Roles of other users.
@@ -18,11 +18,11 @@ This kind of access control or authorization is implemented using role based acc
 
 It is imporant to make the distinction between these *Application Roles* and the *Directory Roles* that are built into Azure Active Directory.  This application automatically assings any users with the Directory Role "Global Administrator" the Application Role "Admin," allowing directory global administrators to begin assigning Application Roles to other users when the application is first run.  For a complete list of built-in directory roles, use the [Get-MsolRole](http://technet.microsoft.com/en-us/library/dn194100.aspx) cmdlet.
 
-The application also incorporates group membership for enforcing authorization policies.  In addition to assigning roles directly to users, application Admins can assign roles to Azure Active Directory Security Groups, and assing users to those groups.  In this sample, we manage user membership to Security Groups through the [Azure Management Portal](https://manage.windowsazure.com/), but it can also be accomplished programatically using the [AAD Graph API](http://msdn.microsoft.com/en-us/library/azure/hh974476.aspx).  To determine which Security Groups a user belongs to, the application uses Group Claims that are included in the OpenIDConnect access token acquired at login, which allows us to determine group membership without having to make extra calls to the Graph API.
+The application also incorporates group membership for enforcing authorization policies.  In addition to assigning roles directly to users, application Admins can assign roles to Azure Active Directory Security Groups, and assign users to those groups.  In this sample, we manage user membership to Security Groups through the [Azure Management Portal](https://manage.windowsazure.com/), but it can also be accomplished programatically using the [AAD Graph API](http://msdn.microsoft.com/en-us/library/azure/hh974476.aspx).  To determine which Security Groups a user belongs to, the application uses Group Claims that are included in the OpenIDConnect access token acquired at login, which allows us to determine group membership without having to make extra calls to the Graph API.
 
 In order to persist a record of the Application Roles each user and group has been granted, the Task Tracker application contains a Roles.xml file that stores the mappings of both users and Security Groups to Application Roles.  In addition, it stores tasks that have been created in a Tasks.xml file for future access.
 
-Using RBAC with custom Application Roles, built-in Azure Active Directory Roles, and Azure Active Directory Security Groups, we can create an application that securely enforces authorization policies with simple management of users and groups.
+Using RBAC with custom Application Roles, built-in Azure Active Directory Roles, and Azure Active Directory Security Groups, this application securely enforces authorization policies with simple management of users and groups.
 
 
 
