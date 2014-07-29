@@ -1,4 +1,6 @@
 ﻿using System.Web.Mvc;
+
+//The following libraries were defined and added to this sample.
 using WebAppRBACDotNet.Helpers;
 
 namespace WebAppRBACDotNet.Controllers

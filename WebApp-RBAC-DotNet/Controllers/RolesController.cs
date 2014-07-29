@@ -1,16 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Security.Claims;
 using System.Web;
 using System.Web.Mvc;
+
+//The following libraries were added to this sample.
+using System.Security.Claims;
 using Microsoft.Azure.ActiveDirectory.GraphClient;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Owin.Security.OpenIdConnect;
+using ExpressionHelper = Microsoft.Azure.ActiveDirectory.GraphClient.ExpressionHelper;
+
+//The following libraries were defined and added to this sample.
 using WebAppRBACDotNet.Helpers;
 using WebAppRBACDotNet.Models;
 using WebAppRBACDotNet.Utils;
-using ExpressionHelper = Microsoft.Azure.ActiveDirectory.GraphClient.ExpressionHelper;
+
 
 namespace WebAppRBACDotNet.Controllers
 {
@@ -26,7 +31,7 @@ namespace WebAppRBACDotNet.Controllers
         /// </summary>
         /// <returns>Role <see cref="View"/> with inputs to edit application role mappings.</returns>
         [HttpGet]
-        [Authorize(Roles = "Admin")] //TODO: Bug on Github Sample (redirect loop)
+        [Authorize(Roles = "Admin")]
         public ActionResult Index()
         {
             // Get Existing Mappings from Roles.xml

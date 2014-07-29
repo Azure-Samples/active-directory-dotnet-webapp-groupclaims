@@ -1,12 +1,16 @@
 ﻿using System;
-using System.Security.Claims;
 using System.Web;
 using System.Web.Mvc;
+using System.Collections.Generic;
+
+//The following libraries were added to this sample.
+using System.Security.Claims;
 using Microsoft.Azure.ActiveDirectory.GraphClient;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Owin.Security.OpenIdConnect;
+
+//The following libraries were defined and added to this sample.
 using WebAppRBACDotNet.Utils;
-using System.Collections.Generic;
 
 namespace WebAppRBACDotNet.Controllers
 {
@@ -20,6 +24,8 @@ namespace WebAppRBACDotNet.Controllers
         [Authorize]
         public ActionResult Index()
         {
+            List<User> users = new List<User>();
+
             //Get the Access Token for Calling Graph API
             AuthenticationResult result = null;
             try
@@ -49,11 +55,10 @@ namespace WebAppRBACDotNet.Controllers
 
                 // The user needs to re-authorize.  Show them a message to that effect.
                 ViewBag.ErrorMessage = "AuthorizationRequired";
-                return View();
+                return View(users);
             }
 
-            List<User> users = new List<User>();
-
+            
             // Setup Graph API connection and get a list of users
             Guid ClientRequestId = Guid.NewGuid();
             var graphSettings = new GraphSettings();
