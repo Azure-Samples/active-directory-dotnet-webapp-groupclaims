@@ -1,12 +1,16 @@
 ﻿using System;
-using System.Security.Claims;
 using System.Web;
 using System.Web.Mvc;
+using System.Collections.Generic;
+
+//The following libraries were added to this sample.
+using System.Security.Claims;
 using Microsoft.Azure.ActiveDirectory.GraphClient;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Owin.Security.OpenIdConnect;
+
+//The following libraries were defined and added to this sample.
 using WebAppRBACDotNet.Utils;
-using System.Collections.Generic;
 
 namespace WebAppRBACDotNet.Controllers
 {
@@ -20,6 +24,8 @@ namespace WebAppRBACDotNet.Controllers
         [HttpGet]
         public ActionResult Index()
         {
+            List<Group> groups = new List<Group>();
+
             //Get the Access Token for Calling Graph API from the cache
             AuthenticationResult result = null;
             try
@@ -49,7 +55,7 @@ namespace WebAppRBACDotNet.Controllers
 
                 // The user needs to re-authorize.  Show them a message to that effect.
                 ViewBag.ErrorMessage = "AuthorizationRequired";
-                return View();
+                return View(groups);
             }
 
             // Setup Graph API connection
@@ -59,7 +65,6 @@ namespace WebAppRBACDotNet.Controllers
             var graphConnection = new GraphConnection(result.AccessToken, ClientRequestId, graphSettings);
 
             // Query for the List of Security Groups.
-            List<Group> groups = new List<Group>();
             PagedResults<Group> pagedResults = graphConnection.List<Group>(null, null);
 
             // Add Each Page of Results to List

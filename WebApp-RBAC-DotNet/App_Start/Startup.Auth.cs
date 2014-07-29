@@ -1,17 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Web;
+
+//The following libraries were added to this sample.
 using System.Configuration;
 using System.Globalization;
 using System.IO;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using System.Web;
 using Microsoft.Azure.ActiveDirectory.GraphClient;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Owin.Security;
 using Microsoft.Owin.Security.Cookies;
 using Microsoft.Owin.Security.OpenIdConnect;
 using Owin;
+
+//The following libraries were defined and added to this sample.
 using WebAppRBACDotNet.Helpers;
 using WebAppRBACDotNet.Models;
 using WebAppRBACDotNet.Utils;
@@ -20,8 +24,6 @@ namespace WebAppRBACDotNet
 {
     public partial class Startup
     {
-        //TODO: Exception if you try to run the app as someone already signed into a work account that is not part of your tenant
-
         // The Client ID is used by the application to uniquely identify itself to Azure AD.
         // The App Key is a credential used to authenticate the application to Azure AD.  Azure AD supports password and certificate credentials.
         // The AAD Instance is the instance of Azure, for example public Azure or Azure China.
@@ -62,7 +64,6 @@ namespace WebAppRBACDotNet
                         AuthorizationCodeReceived = context =>
                         {
                             var credential = new ClientCredential(clientId, appKey);
-                            //string userObjectID = ClaimsPrincipal.Current.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier").Value; //TODO: Bug on Github Sample?
                             string userObjectId = context.AuthenticationTicket.Identity.FindFirst(
                                 "http://schemas.microsoft.com/identity/claims/objectidentifier").Value;
 
@@ -109,16 +110,16 @@ namespace WebAppRBACDotNet
             // if the user is associated with too many Group Claims to fit in the token (>250).
             // If this is the case, we must use the GraphAPI to retrieve group information.
             if (claimsIdentity.FindFirst("_claim_sources") != null)
-                listOfGroupObjectIDs = getGroupsFromGraphAPI(accessToken, userObjectId, claimsIdentity);
+                listOfGroupObjectIDs = GetGroupsFromGraphAPI(accessToken, userObjectId, claimsIdentity);
             else
             {
                 // If no Overage Claim, add each group claim to the ObjectID list for comparison to XML records.
                 foreach (Claim groupClaim in claimsIdentity.FindAll("groups"))
                     listOfGroupObjectIDs.Add(groupClaim.Value);
-
-                // In addition, we need to make sure AAD Global Administrators recieve the Application Role "Admin"
-                checkForGlobalAdmin(accessToken, claimsIdentity);
             }
+
+            // In addition, we need to make sure AAD Global Administrators recieve the Application Role "Admin"
+            AddGlobalAdminMapping(accessToken, claimsIdentity);
 
             // For each role the user has been granted, add a role claim to the AuthenticationTicket.Identity object.
             // The application will look at these claims to determine access to different components using 
@@ -167,16 +168,13 @@ namespace WebAppRBACDotNet
         /// <summary>
         /// If the access token recieved contains an overage claim, we must query the GraphAPI
         /// to obtain information about the user and the security groups they are a member of.
-        /// We must also explicity assign a user that is a Global Administrator the application 
-        /// role of "Admin," because the GraphAPI will not return a built-in "Global Administrators"
-        /// Group object (as Group Claims do).
         /// </summary>
         /// <param name="accessToken">The OpenIDConnect access token, used here for querying the GraphAPI.</param>
         /// <param name="userObjectId">The signed-in user's ObjectID</param>
         /// <param name="claimsIdentity">The <see cref="ClaimsIdenity" /> object that represents the 
         /// claims-based identity of the currently signed in user and contains thier claims.</param>
         /// <returns>A list of ObjectIDs representing the groups that the user is a member of.</returns>
-        private List<String> getGroupsFromGraphAPI(string accessToken, string userObjectId,
+        private List<String> GetGroupsFromGraphAPI(string accessToken, string userObjectId,
             ClaimsIdentity claimsIdentity)
         {
             var pagedResults = new PagedResults<GraphObject>();
@@ -195,9 +193,6 @@ namespace WebAppRBACDotNet
                 // the Groups & Built-In Roles that the user is assinged to.
                 var user = graphConnection.Get<User>(userObjectId);
                 pagedResults = graphConnection.GetLinkedObjects(user, LinkProperty.MemberOf, null);
-                //TODO: Feature Suggestion. Weird to Get Role & Group Objects as Group Claims. 
-                //TODO: Yes, I know /GetMemberObjects is there. 2 different ObjectIds for "Company Administrator" Role object
-                //TODO: Am I using the wrong version of the GraphAPI? api-version=1.22-preview?
                 
                 // Add All Objects (Both Built-In Directory Roles and Groups) returened by the GraphAPI.
                 builtInRolesAndGroups.AddRange(pagedResults.Results);
@@ -207,32 +202,16 @@ namespace WebAppRBACDotNet
                     builtInRolesAndGroups.AddRange(pagedResults.Results);
                 }
             }
-            catch (Exception e) //TODO: Specific GraphAPI Object Not Found Exception?
+            catch (Exception e)
             {
+                //Ignore user not found exception, simply don't add groups
             }
 
             // For each object returned by the GraphAPI
             foreach (GraphObject roleOrGroup in builtInRolesAndGroups)
             {
-                // If the object is a "Company Administrator" (a.k.a. Global Administrator) Role Object,
-                // explicity assign the application role of "Admin" to the ClaimsIdentity object.
-                // This is necessary because the GraphAPI does not return the "Global Administrator"
-                // object (as Group Claims do).
-                if (roleOrGroup.ODataTypeName == "Microsoft.WindowsAzure.ActiveDirectory.Role" &&
-                    roleOrGroup.TokenDictionary["displayName"].ToString() == "Company Administrator")
-                {
-                    claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, "Admin", ClaimValueTypes.String,
-                        "RBAC-Sample-ADALv2-App"));
-                }
-
-                // If the object is a Security Group, add its ObjectID to the list to return and add
-                // a corresponding group claim to the ClaimsIdentity object.
-                else if (roleOrGroup.ODataTypeName == "Microsoft.WindowsAzure.ActiveDirectory.Group")
-                {
-                    listOfGroupObjectIDs.Add(roleOrGroup.ObjectId);
-                    claimsIdentity.AddClaim(new Claim("groups", roleOrGroup.ObjectId, ClaimValueTypes.String,
-                        "AAD-Tenant-Security-Groups"));
-                }
+                listOfGroupObjectIDs.Add(roleOrGroup.ObjectId);
+                claimsIdentity.AddClaim(new Claim("groups", roleOrGroup.ObjectId, ClaimValueTypes.String, "AAD-Tenant-Security-Groups"));
             }
 
             return listOfGroupObjectIDs;
@@ -248,7 +227,7 @@ namespace WebAppRBACDotNet
         /// <param name="accessToken">The OpenIDConnect access token, used here to query the GraphAPI.</param>
         /// <param name="claimsIdentity">The <see cref="ClaimsIdenity" /> object that represents the 
         /// claims-based identity of the currently signed in user and contains thier claims.</param>
-        private void checkForGlobalAdmin(string accessToken, ClaimsIdentity claimsIdentity)
+        private void AddGlobalAdminMapping(string accessToken, ClaimsIdentity claimsIdentity)
         {
             // Setup Graph API connection
             Guid ClientRequestId = Guid.NewGuid();
@@ -263,12 +242,64 @@ namespace WebAppRBACDotNet
                 {
                     var resultRole = graphConnection.Get<Role>(groupClaim.Value);
                     if (resultRole.DisplayName == "Company Administrator")
+                    {
                         XmlHelper.AppendRoleMappingToXml("Admin", groupClaim.Value);
+                        return;
+                    }
                 }
-                catch (Exception e) //TODO: Specific GraphAPI Object Not Found Exception?
+                catch (Exception e) 
                 {
+                    //Ignore object not found exception, only looking for Roles
                 }
             }
         }
+
+        ///// <summary>
+        ///// TODO: This to replace above implementation once GraphAPI 1.5 is available.
+        ///// 
+        ///// Assigns the "Global Administrator" group object
+        ///// the application role of "Admin" by adding its ObjectID to the Roles.xml file.  This is to ensure that
+        ///// at least one Global Administrator can initially login and assign application roles to other users. 
+        ///// There are several other ways to accomplish this.</summary>
+        ///// <param name="accessToken">The OpenIDConnect access token, used here to query the GraphAPI.</param>
+        ///// <param name="claimsIdentity">The <see cref="ClaimsIdenity" /> object that represents the 
+        ///// claims-based identity of the currently signed in user and contains thier claims.</param>
+        //private void AddGlobalAdminMapping(string accessToken, ClaimsIdentity claimsIdentity)
+        //{
+        //    // Setup Graph API connection
+        //    Guid ClientRequestId = Guid.NewGuid();
+        //    var graphSettings = new GraphSettings();
+        //    graphSettings.ApiVersion = GraphConfiguration.GraphApiVersion;
+        //    var graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
+
+        //    //// With Role Filter Search
+        //    //try
+        //    //{
+        //    //    var filter = new FilterGenerator();
+        //    //    filter.QueryFilter =
+        //    //        ExpressionHelper.CreateConditionalExpression(
+        //    //            typeof (Role), GraphProperty.DisplayName, "Company Administrator", ExpressionType.Equal);
+        //    //    PagedResults<Role> pagedRoleResults = graphConnection.List<Role>(null, filter);
+        //    //    XmlHelper.AppendRoleMappingToXml("Admin", pagedRoleResults.Results[0].ObjectId);
+                
+        //    //}
+        //    //catch (Exception e)
+        //    //{
+        //    //}
+
+        //    //// Without Role Filter Search
+        //    //try
+        //    //{
+        //    //    PagedResults<Role> roleList = graphConnection.List<Role>(null, null);
+        //    //    foreach (Role role in roleList.Results)
+        //    //    {
+        //    //        if (role.DisplayName == "Company Administrator")
+        //    //            XmlHelper.AppendRoleMappingToXml("Admin", role.ObjectId);
+        //    //    }
+        //    //}
+        //    //catch (Exception e)
+        //    //{
+        //    //}
+        //}
     }
 }

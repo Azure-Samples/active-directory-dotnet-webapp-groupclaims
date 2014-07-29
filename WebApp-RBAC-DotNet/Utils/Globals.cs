@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿//The following libraries were added to this sample.
 using System.Configuration;
-using System.Linq;
-using System.Web;
 
 namespace WebAppRBACDotNet.Utils
 {

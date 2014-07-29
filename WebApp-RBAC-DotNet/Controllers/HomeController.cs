@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Security.Claims;
 using System.Web;
 using System.Web.Mvc;
+
+//The following libraries were added to this sample.
+using System.Security.Claims;
 using Microsoft.Azure.ActiveDirectory.GraphClient;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Owin.Security.OpenIdConnect;
+
+//The following libraries were defined and added to this sample.
 using WebAppRBACDotNet.Models;
 using WebAppRBACDotNet.Utils;
 
@@ -41,6 +45,7 @@ namespace WebAppRBACDotNet.Controllers
                     myroles.Add(str);
             }
             ViewData["myroles"] = myroles;
+            ViewData["mygroups"] = mygroups;
 
 
             //Get the Access Token for Calling Graph API frome the cache
@@ -82,7 +87,7 @@ namespace WebAppRBACDotNet.Controllers
             var graphConnection = new GraphConnection(result.AccessToken, clientRequestId, graphSettings);
 
             // For each Group Claim, we need to get the DisplayName of the Group from the GraphAPI
-            // We choose to iterate over the set of all groups rather than query the GraphAPI multiple times.
+            // We choose to iterate over the set of all groups rather than query the GraphAPI for each group.
             // First, put all <GroupObjectID, DisplayName> pairs into a dictionary
             Dictionary<string, string> groupNameDict = new Dictionary<string, string>();
             PagedResults<Group> pagedResults = graphConnection.List<Group>(null, null);

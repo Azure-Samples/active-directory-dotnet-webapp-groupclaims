@@ -1,5 +1,7 @@
-﻿using System.Security.Cryptography;
-using System.Web;
+﻿using System.Web;
+
+//The following libraries were added to this sample.
+using System.Security.Cryptography;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
 namespace WebAppRBACDotNet.Utils
