@@ -19,6 +19,7 @@ using Owin;
 using WebAppRBACDotNet.Helpers;
 using WebAppRBACDotNet.Models;
 using WebAppRBACDotNet.Utils;
+using System.Linq.Expressions;
 
 namespace WebAppRBACDotNet
 {
@@ -95,7 +96,7 @@ namespace WebAppRBACDotNet
 
         /// <summary>
         /// Adds all appropriate application roles to the <see cref="AuthenticationTicket"/> object, based
-        /// on Built-In AAD roles, Security Group membership, and existing role assingments in our Roles.xml file.
+        /// on App Owners, Security Group membership, and existing role assingments in our Roles.xml file.
         /// </summary>
         /// <param name="userObjectId">The ObjectID of the signed-in user.</param>
         /// <param name="accessToken">The access token acquired in OpenIDConnect Authentication.</param>
@@ -118,8 +119,8 @@ namespace WebAppRBACDotNet
                     listOfGroupObjectIDs.Add(groupClaim.Value);
             }
 
-            // In addition, we need to make sure AAD Global Administrators recieve the Application Role "Admin"
-            AddGlobalAdminMapping(accessToken, claimsIdentity);
+            // In addition, we need to make sure application owners recieve the Application Role "Admin"
+            AddOwnerMapping(userObjectId, accessToken, claimsIdentity);
 
             // For each role the user has been granted, add a role claim to the AuthenticationTicket.Identity object.
             // The application will look at these claims to determine access to different components using 
@@ -219,15 +220,15 @@ namespace WebAppRBACDotNet
 
 
         /// <summary>
-        /// Checks to see if the user is an AAD Global Administrator. If so, assigns the "Global Administrator" group object
-        /// the application role of "Admin" by adding its ObjectID to the Roles.xml file.  This is to ensure that
-        /// at least one Global Administrator can initially login and assign application roles to other users. 
-        /// There are several other ways to accomplish this.  For instance, we could manually add the 
-        /// Global Administrator group ObjectID to the XML the first time only, saving extra GraphAPI calls made on login.</summary>
+        /// Checks to see if the user is an application owner. If so, assigns the user the application role of "Admin" 
+        /// by adding its ObjectID to the Roles.xml file.  This is to ensure that
+        /// at least one user can initially login and assign application roles to other users. 
+        /// There are several other ways to accomplish this.
+        /// </summary>
         /// <param name="accessToken">The OpenIDConnect access token, used here to query the GraphAPI.</param>
         /// <param name="claimsIdentity">The <see cref="ClaimsIdenity" /> object that represents the 
         /// claims-based identity of the currently signed in user and contains thier claims.</param>
-        private void AddGlobalAdminMapping(string accessToken, ClaimsIdentity claimsIdentity)
+        private void AddOwnerMapping(string userObjectId, string accessToken, ClaimsIdentity claimsIdentity)
         {
             // Setup Graph API connection
             Guid ClientRequestId = Guid.NewGuid();
@@ -235,71 +236,41 @@ namespace WebAppRBACDotNet
             graphSettings.ApiVersion = GraphConfiguration.GraphApiVersion;
             var graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
 
-            //Check if any of the group claims are the Global Administrator Group, and add to XML if so.
-            foreach (Claim groupClaim in claimsIdentity.FindAll("groups"))
+            try
             {
-                try
+                FilterGenerator filter = new FilterGenerator();
+                filter.QueryFilter = ExpressionHelper.CreateConditionalExpression(typeof (Application),
+                    GraphProperty.AppId, new Guid(clientId), ExpressionType.Equal);
+                PagedResults<Application> pagedApp = graphConnection.List<Application>(null, filter);
+
+                PagedResults<GraphObject> owners = graphConnection.GetLinkedObjects(pagedApp.Results[0],
+                    LinkProperty.Owners, null);
+                foreach (var owner in owners.Results)
                 {
-                    var resultRole = graphConnection.Get<Role>(groupClaim.Value);
-                    if (resultRole.DisplayName == "Company Administrator")
+                    if (owner.ObjectId == userObjectId)
                     {
-                        XmlHelper.AppendRoleMappingToXml("Admin", groupClaim.Value);
+                        XmlHelper.AppendRoleMappingToXml("Admin", userObjectId);
                         return;
                     }
                 }
-                catch (Exception e) 
+                while (!owners.IsLastPage)
                 {
-                    //Ignore object not found exception, only looking for Roles
+                   owners = graphConnection.GetLinkedObjects(pagedApp.Results[0],
+                   LinkProperty.RegisteredOwners, owners.PageToken);
+                    foreach (var owner in owners.Results)
+                    {
+                        if (owner.ObjectId == userObjectId)
+                        {
+                            XmlHelper.AppendRoleMappingToXml("Admin", userObjectId);
+                            return;
+                        }
+                    }
                 }
             }
+            catch (Exception e)
+            {
+                // Graph Error, Ignore and do not grant admin access
+            }
         }
-
-        ///// <summary>
-        ///// TODO: This to replace above implementation once GraphAPI 1.5 is available.
-        ///// 
-        ///// Assigns the "Global Administrator" group object
-        ///// the application role of "Admin" by adding its ObjectID to the Roles.xml file.  This is to ensure that
-        ///// at least one Global Administrator can initially login and assign application roles to other users. 
-        ///// There are several other ways to accomplish this.</summary>
-        ///// <param name="accessToken">The OpenIDConnect access token, used here to query the GraphAPI.</param>
-        ///// <param name="claimsIdentity">The <see cref="ClaimsIdenity" /> object that represents the 
-        ///// claims-based identity of the currently signed in user and contains thier claims.</param>
-        //private void AddGlobalAdminMapping(string accessToken, ClaimsIdentity claimsIdentity)
-        //{
-        //    // Setup Graph API connection
-        //    Guid ClientRequestId = Guid.NewGuid();
-        //    var graphSettings = new GraphSettings();
-        //    graphSettings.ApiVersion = GraphConfiguration.GraphApiVersion;
-        //    var graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
-
-        //    //// With Role Filter Search
-        //    //try
-        //    //{
-        //    //    var filter = new FilterGenerator();
-        //    //    filter.QueryFilter =
-        //    //        ExpressionHelper.CreateConditionalExpression(
-        //    //            typeof (Role), GraphProperty.DisplayName, "Company Administrator", ExpressionType.Equal);
-        //    //    PagedResults<Role> pagedRoleResults = graphConnection.List<Role>(null, filter);
-        //    //    XmlHelper.AppendRoleMappingToXml("Admin", pagedRoleResults.Results[0].ObjectId);
-                
-        //    //}
-        //    //catch (Exception e)
-        //    //{
-        //    //}
-
-        //    //// Without Role Filter Search
-        //    //try
-        //    //{
-        //    //    PagedResults<Role> roleList = graphConnection.List<Role>(null, null);
-        //    //    foreach (Role role in roleList.Results)
-        //    //    {
-        //    //        if (role.DisplayName == "Company Administrator")
-        //    //            XmlHelper.AppendRoleMappingToXml("Admin", role.ObjectId);
-        //    //    }
-        //    //}
-        //    //catch (Exception e)
-        //    //{
-        //    //}
-        //}
     }
 }
