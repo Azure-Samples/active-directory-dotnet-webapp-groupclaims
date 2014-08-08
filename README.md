@@ -16,7 +16,7 @@ This kind of access control or authorization is implemented using role based acc
 - Approver: Has the ability to change the status of tasks.
 - Observer: Only has the ability to view tasks and their statuses.
 
-It is imporant to make the distinction between these *Application Roles* and the *Directory Roles* that are built into Azure Active Directory.  This application automatically assings any users with the Directory Role "Global Administrator" the Application Role "Admin," allowing directory global administrators to begin assigning Application Roles to other users when the application is first run.  For a complete list of built-in directory roles, use the [Get-MsolRole](http://technet.microsoft.com/en-us/library/dn194100.aspx) cmdlet.
+It is imporant to make the distinction between these *Application Roles* and the *Directory Roles* that are built into Azure Active Directory.  For a complete list of built-in directory roles, use the [Get-MsolRole](http://technet.microsoft.com/en-us/library/dn194100.aspx) cmdlet.
 
 The application also incorporates group membership for enforcing authorization policies.  In addition to assigning roles directly to users, application Admins can assign roles to Azure Active Directory Security Groups, and assign users to those groups.  In this sample, we manage user membership to Security Groups through the [Azure Management Portal](https://manage.windowsazure.com/), but it can also be accomplished programatically using the [AAD Graph API](http://msdn.microsoft.com/en-us/library/azure/hh974476.aspx).  To determine which Security Groups a user belongs to, the application uses Group Claims that are included in the OpenIDConnect access token acquired at login, which allows us to determine group membership without having to make extra calls to the Graph API.
 
@@ -60,6 +60,8 @@ If you already have a user account with Global Administrator rights in your Azur
 11. Find the Client ID value and copy it aside, you will need this later when configuring your application.
 12. Create a new key for the application.  Save the configuration so you can view the key value.  Save this aside for when you configure the project in Visual Studio.
 13. In the Permissions to Other Applications configuration section, ensure that "Read Directory Data" is selected under "Application permissions" and that both "Access your organization's directory" and "Enable sign-on and read user's profiles" are selected under "Delegated permissions."  Save the configuration.
+14. Navigate to the Owners tab of your application.
+15. Add at least one user as an application owner. The application assigns any user that is an owner the application role of "Admin."  This allows you to login as an admin initially and begin assigning roles to other users.
 
 ### Step 4:  Configure the sample to use your Azure AD tenant
 
