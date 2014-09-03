@@ -13,13 +13,13 @@ using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Owin.Security;
 using Microsoft.Owin.Security.Cookies;
 using Microsoft.Owin.Security.OpenIdConnect;
+using System.Linq.Expressions;
 using Owin;
 
 //The following libraries were defined and added to this sample.
 using WebAppRBACDotNet.Helpers;
 using WebAppRBACDotNet.Models;
 using WebAppRBACDotNet.Utils;
-using System.Linq.Expressions;
 
 namespace WebAppRBACDotNet
 {
@@ -157,7 +157,7 @@ namespace WebAppRBACDotNet
                 foreach (RoleMapElem mappingEntry in roleType)
                 {
                     if (mappingEntry.ObjectId.Equals(objectId) ||
-                        groupMemberships != null && groupMemberships.Contains(mappingEntry.ObjectId))
+                        (groupMemberships != null && groupMemberships.Contains(mappingEntry.ObjectId)))
                     {
                         roles.Add(mappingEntry.Role);
                     }
@@ -179,7 +179,6 @@ namespace WebAppRBACDotNet
             ClaimsIdentity claimsIdentity)
         {
             var pagedResults = new PagedResults<GraphObject>();
-            var builtInRolesAndGroups = new List<GraphObject>();
             var listOfGroupObjectIDs = new List<String>();
 
             try
@@ -196,25 +195,27 @@ namespace WebAppRBACDotNet
                 pagedResults = graphConnection.GetLinkedObjects(user, LinkProperty.MemberOf, null);
                 
                 // Add All Objects (Both Built-In Directory Roles and Groups) returened by the GraphAPI.
-                builtInRolesAndGroups.AddRange(pagedResults.Results);
+                foreach (var roleOrGroup in pagedResults.Results)
+                {
+                    listOfGroupObjectIDs.Add(roleOrGroup.ObjectId);
+                    claimsIdentity.AddClaim(new Claim("groups", roleOrGroup.ObjectId,
+                        ClaimValueTypes.String, "AAD-Tenant-Security-Groups"));
+                }
                 while (!pagedResults.IsLastPage)
                 {
                     pagedResults = graphConnection.GetLinkedObjects(user, LinkProperty.MemberOf, pagedResults.PageToken);
-                    builtInRolesAndGroups.AddRange(pagedResults.Results);
+                    foreach (var roleOrGroup in pagedResults.Results)
+                    {
+                        listOfGroupObjectIDs.Add(roleOrGroup.ObjectId);
+                        claimsIdentity.AddClaim(new Claim("groups", roleOrGroup.ObjectId,
+                            ClaimValueTypes.String, "AAD-Tenant-Security-Groups"));
+                    }
                 }
             }
             catch (Exception e)
             {
                 //Ignore user not found exception, simply don't add groups
             }
-
-            // For each object returned by the GraphAPI
-            foreach (GraphObject roleOrGroup in builtInRolesAndGroups)
-            {
-                listOfGroupObjectIDs.Add(roleOrGroup.ObjectId);
-                claimsIdentity.AddClaim(new Claim("groups", roleOrGroup.ObjectId, ClaimValueTypes.String, "AAD-Tenant-Security-Groups"));
-            }
-
             return listOfGroupObjectIDs;
         }
 

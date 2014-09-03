@@ -13,6 +13,12 @@
     </RoleMapElem>
   </ArrayOfRoleMapElem>
   <ArrayOfRoleMapElem />
-  <ArrayOfRoleMapElem />
+  <ArrayOfRoleMapElem>
+    <RoleMapElem>
+      <ObjectId>18af55a8-f892-4c2e-8ac2-34844bc5aaed</ObjectId>
+      <Role>Writer</Role>
+      <MappingId>2</MappingId>
+    </RoleMapElem>
+  </ArrayOfRoleMapElem>
   <ArrayOfRoleMapElem />
 </ArrayOfArrayOfRoleMapElem>
