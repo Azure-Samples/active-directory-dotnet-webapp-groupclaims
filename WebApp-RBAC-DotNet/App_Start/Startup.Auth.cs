@@ -70,30 +70,38 @@ namespace WebAppRBACDotNet
                         // This is also where we hook into a user login event and add our own custom application authorization logic.
                         AuthorizationCodeReceived = async context =>
                         {
-                            var credential = new ClientCredential(clientId, appKey);
-                            string userObjectId = context.AuthenticationTicket.Identity.FindFirst(
-                                "http://schemas.microsoft.com/identity/claims/objectidentifier").Value;
-
-                            // Configure a new <see cref="NaiveSessionCache" \> for storing the access token
-                            // and making it accessible throughout the entire application.
+                            ClaimsIdentity claimsId = context.AuthenticationTicket.Identity;
+                            ClientCredential credential = new ClientCredential(clientId, appKey);
+                            string userObjectId = claimsId.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier").Value;
                             var authContext = new AuthenticationContext(Authority, new NaiveSessionCache(userObjectId));
-                            
-                            // Acquire Access Token
                             AuthenticationResult result = authContext.AcquireTokenByAuthorizationCode(
-                                context.Code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential,
-                                graphResourceId);
+                                context.Code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential, graphResourceId);
 
-                            // Add Appropriate Application Roles To <see cref="AuthenticationTicket" \> object.
-                            // The Owin Middleware has not populated the <see cref="ClaimsPrinicpal"> object with 
-                            // AuthenticationTicket data at this point, so we must add custom application claims to 
-                            // AuthenticationTicket.Identity.
-                            await AddRolesToAuthTicket(userObjectId, result.AccessToken, context.AuthenticationTicket.Identity);
+                            if (claimsId.FindFirst("_claim_sources") != null)
+                            {
+                                List<String> groupMemberships = await GetGroupsFromGraphAPI(result.AccessToken, claimsId);
+                                AssignRoles(userObjectId, groupMemberships, claimsId);
+                            }
+
+                            // In addition, we need to make sure application owners recieve the Application Role "Admin"
+                            AddOwnerMapping(userObjectId, accessToken, claimsIdentity);
 
                             return;
                         },
 
                         SecurityTokenValidated = context =>
                         {
+                            ClaimsIdentity claimsId = context.AuthenticationTicket.Identity;
+                            
+                            // If there is a group claim overage (too many groups to fit in the token), we'll need to query the Graph API
+                            if (claimsId.FindFirst("_claim_sources") == null)
+                            {
+                                List<String> groupMemberships = new List<String>();
+                                foreach (Claim groupClaim in claimsId.FindAll("groups"))
+                                    groupMemberships.Add(groupClaim.Value);
+                                AssignRoles(claimsId.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier").Value, groupMemberships, claimsId);
+                            }
+                            
                             return Task.FromResult(0);
                         }
                     }
@@ -104,46 +112,7 @@ namespace WebAppRBACDotNet
         ////////////////////////////////////////////////////////////////////
         //////// HELPER FUNCTIONS
         ////////////////////////////////////////////////////////////////////
-
-        /// <summary>
-        /// Adds all appropriate application roles to the <see cref="AuthenticationTicket"/> object, based
-        /// on App Owners, Security Group membership, and existing role assingments in our Roles.xml file.
-        /// </summary>
-        /// <param name="userObjectId">The ObjectID of the signed-in user.</param>
-        /// <param name="accessToken">The access token acquired in OpenIDConnect Authentication.</param>
-        /// <param name="claimsIdentity">The <see cref="ClaimsIdenity" /> object that represents the 
-        /// claims-based identity of the currently signed in user and contains thier claims.</param>
-        private async Task AddRolesToAuthTicket(string userObjectId, string accessToken, ClaimsIdentity claimsIdentity)
-        {   
-            // A list of all the ObjectIDs of the Security Groups associated with the user
-            var listOfGroupObjectIDs = new List<String>();
-
-            // Check if the access token recieved contains an Overage claim.  An overage claim is included
-            // if the user is associated with too many Group Claims to fit in the token (>250).
-            // If this is the case, we must use the GraphAPI to retrieve group information.
-            if (claimsIdentity.FindFirst("_claim_sources") != null)
-                listOfGroupObjectIDs = await GetGroupsFromGraphAPI(accessToken, claimsIdentity);
-            else
-            {
-                // If no Overage Claim, add each group claim to the ObjectID list for comparison to XML records.
-                foreach (Claim groupClaim in claimsIdentity.FindAll("groups"))
-                    listOfGroupObjectIDs.Add(groupClaim.Value);
-            }
-
-            // In addition, we need to make sure application owners recieve the Application Role "Admin"
-            AddOwnerMapping(userObjectId, accessToken, claimsIdentity);
-
-            // For each role the user has been granted, add a role claim to the AuthenticationTicket.Identity object.
-            // The application will look at these claims to determine access to different components using 
-            // the AuthorizeAttribute class and IsInRole() method.
-            foreach (string role in GetRoles(userObjectId, listOfGroupObjectIDs))
-            {
-                //Store the user's application roles as claims of type Role
-                claimsIdentity.AddClaim(new Claim(ClaimTypes.Role, role, ClaimValueTypes.String,
-                    "RBAC-Sample-ADALv2-App"));
-            }
-        }
-
+        #region HelperFunctions
         /// <summary>
         /// Determine which application roles (Admin, Writer, Approver, Observer) the user has been granted.
         /// </summary>
@@ -151,30 +120,22 @@ namespace WebAppRBACDotNet
         /// <param name="groupMemberships">The list of <see cref="Group" /> ObjectIDs the signed-in
         /// user belongs to.</param>
         /// <returns>A List of Application Roles that the user has been granted</returns>
-        private static List<String> GetRoles(string objectId, List<String> groupMemberships)
+        private void AssignRoles(string objectId, List<String> groupMemberships, ClaimsIdentity claimsId)
         {
-            var roles = new List<string>();
-
             // Make sure the Roles.xml file exists and we have an ObjectID for the user
             if (!File.Exists(RoleMapElem.RoleMapXMLFilePath) || objectId == null)
-            {
-                return roles;
-            }
-            
+                return;
+                        
             // For every Application Role in Roles.xml, check if the user's ObjectID or
             // one of their security group's ObjectIDs has been assinged to the role
             foreach (var roleType in XmlHelper.GetRoleMappingsFromXml())
             {
                 foreach (RoleMapElem mappingEntry in roleType)
                 {
-                    if (mappingEntry.ObjectId.Equals(objectId) ||
-                        (groupMemberships != null && groupMemberships.Contains(mappingEntry.ObjectId)))
-                    {
-                        roles.Add(mappingEntry.Role);
-                    }
+                    if (mappingEntry.ObjectId.Equals(objectId) || (groupMemberships != null && groupMemberships.Contains(mappingEntry.ObjectId)))
+                        claimsId.AddClaim(new Claim(ClaimTypes.Role, mappingEntry.Role, ClaimValueTypes.String, "RBAC-Sample-ADALv2-App"));
                 }
             }
-            return roles;
         }
 
         /// <summary>
@@ -262,7 +223,7 @@ namespace WebAppRBACDotNet
                 while (!owners.IsLastPage)
                 {
                    owners = graphConnection.GetLinkedObjects(pagedApp.Results[0],
-                   LinkProperty.RegisteredOwners, owners.PageToken);
+                   LinkProperty.Owners, owners.PageToken);
                     foreach (var owner in owners.Results)
                     {
                         if (owner.ObjectId == userObjectId)
@@ -276,6 +237,7 @@ namespace WebAppRBACDotNet
             catch (Exception e)
             {
                 // Graph Error, Ignore and do not grant admin access
+                // TODO: What kind of error to show when something happens on login?
             }
         }
         
@@ -297,5 +259,6 @@ namespace WebAppRBACDotNet
             public string metadata { get; set; }
             public List<string> value { get; set; }
         }
+        #endregion
     }
 }
