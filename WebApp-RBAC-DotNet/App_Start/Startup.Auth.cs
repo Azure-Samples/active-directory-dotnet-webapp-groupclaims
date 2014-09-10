@@ -14,10 +14,10 @@ using Microsoft.Owin.Security;
 using Microsoft.Owin.Security.Cookies;
 using Microsoft.Owin.Security.OpenIdConnect;
 using System.Linq.Expressions;
+using System.Linq;
 using Owin;
 
 //The following libraries were defined and added to this sample.
-using WebAppRBACDotNet.Helpers;
 using WebAppRBACDotNet.Models;
 using WebAppRBACDotNet.Utils;
 using System.Net.Http;
@@ -26,6 +26,8 @@ using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using System.Net;
 using System.Text;
+using WebAppRBACDotNet.DAL;
+using RBACSampleADALv2.Utils;
 
 namespace WebAppRBACDotNet
 {
@@ -84,7 +86,7 @@ namespace WebAppRBACDotNet
                             }
 
                             // In addition, we need to make sure application owners recieve the Application Role "Admin"
-                            AddOwnerMapping(userObjectId, accessToken, claimsIdentity);
+                            AddOwnerMappings(userObjectId, result.AccessToken, claimsId);
 
                             return;
                         },
@@ -102,7 +104,7 @@ namespace WebAppRBACDotNet
                                 AssignRoles(claimsId.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier").Value, groupMemberships, claimsId);
                             }
                             
-                            return Task.FromResult(0);
+                            return System.Threading.Tasks.Task.FromResult(0);
                         }
                     }
                 });
@@ -114,26 +116,22 @@ namespace WebAppRBACDotNet
         ////////////////////////////////////////////////////////////////////
         #region HelperFunctions
         /// <summary>
-        /// Determine which application roles (Admin, Writer, Approver, Observer) the user has been granted.
+        /// Determine which application roles (Owner, Admin, Writer, Approver, Observer) the user has been granted.
         /// </summary>
         /// <param name="objectId"> The signed-in user's ObjectID.</param>
         /// <param name="groupMemberships">The list of <see cref="Group" /> ObjectIDs the signed-in
         /// user belongs to.</param>
         /// <returns>A List of Application Roles that the user has been granted</returns>
-        private void AssignRoles(string objectId, List<String> groupMemberships, ClaimsIdentity claimsId)
+        private void AssignRoles(string userObjectId, List<String> groupMemberships, ClaimsIdentity claimsId)
         {
-            // Make sure the Roles.xml file exists and we have an ObjectID for the user
-            if (!File.Exists(RoleMapElem.RoleMapXMLFilePath) || objectId == null)
-                return;
-                        
-            // For every Application Role in Roles.xml, check if the user's ObjectID or
-            // one of their security group's ObjectIDs has been assinged to the role
-            foreach (var roleType in XmlHelper.GetRoleMappingsFromXml())
+            RbacContext db = new RbacContext();
+            List<RoleMapping> mappings = db.RoleMappings.ToList();
+            foreach (RoleMapping mapping in mappings)
             {
-                foreach (RoleMapElem mappingEntry in roleType)
-                {
-                    if (mappingEntry.ObjectId.Equals(objectId) || (groupMemberships != null && groupMemberships.Contains(mappingEntry.ObjectId)))
-                        claimsId.AddClaim(new Claim(ClaimTypes.Role, mappingEntry.Role, ClaimValueTypes.String, "RBAC-Sample-ADALv2-App"));
+                if (mapping.ObjectId.Equals(userObjectId) || (groupMemberships != null && groupMemberships.Contains(mapping.ObjectId)))
+                { 
+                    if (mapping.Role != "Owner")
+                        claimsId.AddClaim(new Claim(ClaimTypes.Role, mapping.Role, ClaimValueTypes.String, "RBAC-Sample-ADALv2-App"));
                 }
             }
         }
@@ -195,8 +193,10 @@ namespace WebAppRBACDotNet
         /// <param name="accessToken">The Access token, used here to query the GraphAPI.</param>
         /// <param name="claimsIdentity">The <see cref="ClaimsIdenity" /> object that represents the 
         /// claims-based identity of the currently signed in user and contains thier claims.</param>
-        private void AddOwnerMapping(string userObjectId, string accessToken, ClaimsIdentity claimsIdentity)
+        private void AddOwnerMappings(string userObjectId, string accessToken, ClaimsIdentity claimsId)
         {
+            DbAccess.RemoveExistingOwnerMappings();
+            
             // Setup Graph API connection
             Guid ClientRequestId = Guid.NewGuid();
             var graphSettings = new GraphSettings();
@@ -206,7 +206,7 @@ namespace WebAppRBACDotNet
             try
             {
                 FilterGenerator filter = new FilterGenerator();
-                filter.QueryFilter = ExpressionHelper.CreateConditionalExpression(typeof (Application),
+                filter.QueryFilter = ExpressionHelper.CreateConditionalExpression(typeof(Application),
                     GraphProperty.AppId, new Guid(clientId), ExpressionType.Equal);
                 PagedResults<Application> pagedApp = graphConnection.List<Application>(null, filter);
 
@@ -214,30 +214,25 @@ namespace WebAppRBACDotNet
                     LinkProperty.Owners, null);
                 foreach (var owner in owners.Results)
                 {
+                    DbAccess.AddRoleMapping(owner.ObjectId, "Owner");
                     if (owner.ObjectId == userObjectId)
-                    {
-                        XmlHelper.AppendRoleMappingToXml("Admin", userObjectId);
-                        return;
-                    }
+                        claimsId.AddClaim(new Claim(ClaimTypes.Role, "Admin", ClaimValueTypes.String, "RBAC-Sample-ADALv2-App"));
                 }
                 while (!owners.IsLastPage)
                 {
-                   owners = graphConnection.GetLinkedObjects(pagedApp.Results[0],
-                   LinkProperty.Owners, owners.PageToken);
+                    owners = graphConnection.GetLinkedObjects(pagedApp.Results[0], LinkProperty.Owners, owners.PageToken);
                     foreach (var owner in owners.Results)
                     {
+                        DbAccess.AddRoleMapping(owner.ObjectId, "Owner");
                         if (owner.ObjectId == userObjectId)
-                        {
-                            XmlHelper.AppendRoleMappingToXml("Admin", userObjectId);
-                            return;
-                        }
+                            claimsId.AddClaim(new Claim(ClaimTypes.Role, "Admin", ClaimValueTypes.String, "RBAC-Sample-ADALv2-App"));
                     }
                 }
             }
             catch (Exception e)
             {
                 // Graph Error, Ignore and do not grant admin access
-                // TODO: What kind of error to show when something happens on login?
+                // TODO: What kind of error to show when something happens on login in general?
             }
         }
         

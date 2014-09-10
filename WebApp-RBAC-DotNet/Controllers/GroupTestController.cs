@@ -10,7 +10,7 @@ using System.Web.Mvc;
 using WebAppRBACDotNet;
 using WebAppRBACDotNet.Utils;
 
-namespace RBACSampleADALv2.Controllers
+namespace WebAppRBACDotNet.Controllers
 {
     public class GroupTestController : Controller
     {

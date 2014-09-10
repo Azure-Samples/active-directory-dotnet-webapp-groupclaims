@@ -39,7 +39,7 @@ namespace WebAppRBACDotNet.Controllers
             var mygroups = new List<String>();
 
             // Check if the user has been granted each application role.
-            foreach (string str in RoleMapElem.Roles)
+            foreach (string str in Globals.Roles)
             {
                 if (User.IsInRole(str))
                     myroles.Add(str);

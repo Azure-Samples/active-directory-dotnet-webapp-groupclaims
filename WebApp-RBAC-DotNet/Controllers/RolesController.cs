@@ -12,9 +12,9 @@ using Microsoft.Owin.Security.OpenIdConnect;
 using ExpressionHelper = Microsoft.Azure.ActiveDirectory.GraphClient.ExpressionHelper;
 
 //The following libraries were defined and added to this sample.
-using WebAppRBACDotNet.Helpers;
 using WebAppRBACDotNet.Models;
 using WebAppRBACDotNet.Utils;
+using RBACSampleADALv2.Utils;
 
 
 namespace WebAppRBACDotNet.Controllers
@@ -36,7 +36,7 @@ namespace WebAppRBACDotNet.Controllers
         {
             // Get Existing Mappings from Roles.xml
             ViewBag.Message = "RoleMappings";
-            List<List<RoleMapElem>> mappings = XmlHelper.GetRoleMappingsFromXml();
+            List<RoleMapping> mappings = DbAccess.GetAllRoleMappings();
 
             //Dictionary of <ObjectID, DisplayName> pairs
             var nameDict = new Dictionary<string, string>();
@@ -59,11 +59,11 @@ namespace WebAppRBACDotNet.Controllers
                 // If refresh is set to true, the user has clicked the link to be authorized again.
                 if (Request.QueryString["reauth"] == "True")
                 {
-                    
+
                     // Send an OpenID Connect sign-in request to get a new set of tokens.
                     // If the user still has a valid session with Azure AD, they will not be prompted for their credentials.
                     // The OpenID Connect middleware will return to this controller after the sign-in response has been handled.
-                    
+
                     HttpContext.GetOwinContext()
                         .Authentication.Challenge(OpenIdConnectAuthenticationDefaults.AuthenticationType);
                 }
@@ -75,21 +75,14 @@ namespace WebAppRBACDotNet.Controllers
 
             // Construct the <ObjectID, DisplayName> Dictionary, Add Lists of Mappings to ViewData
             // for each type of role
-            for (int i = 0; i < mappings.Count; i++)
-            {
-                // for each mapping entry in that role, add an entry to the NameDict
-                for (int j = 0; j < mappings[i].Count; j++)
-                {
-                    nameDict[mappings[i][j].ObjectId] = GetDisplayNameFromObjectId(result.AccessToken,
-                        mappings[i][j].ObjectId);
-                }
-                
-                // Put RoleLists in ViewData to be read by view
-                ViewData[RoleMapElem.Roles[i] + "List"] = mappings[i];
-            }
+            foreach (RoleMapping mapping in mappings)
+                nameDict[mapping.ObjectId] = GetDisplayNameFromObjectId(result.AccessToken, mapping.ObjectId);
+            
 
+            //TODO: Pass Lists of Mappings to View For Presentation (RoleList thing)
+            ViewData["mappings"] = mappings;
             ViewData["nameDict"] = nameDict;
-            ViewData["roles"] = RoleMapElem.Roles;
+            ViewData["roles"] = Globals.Roles;
             return View();
         }
 
@@ -127,15 +120,12 @@ namespace WebAppRBACDotNet.Controllers
 
                 // Get ObjectID of User Or Group from Name provided by user
                 string objectId = GetObjectIDFromDisplayNameOrUPN(result.AccessToken, formCollection["name"]);
-                
+
                 // If object DNE, show an error
                 if (objectId == null)
-                {
-                    return RedirectToAction("ShowError", "Error", new {errorMessage = "User/Group Not Found."});
-                }
+                    return RedirectToAction("ShowError", "Error", new { errorMessage = "User/Group Not Found." });
 
-                // Add the ObjectID<-->Application Role mapping if it does not already exist
-                XmlHelper.AppendRoleMappingToXml(formCollection["roletype"], objectId);
+                DbAccess.AddRoleMapping(objectId, formCollection["roletype"]);
             }
 
             return RedirectToAction("Index", "Roles", null);
@@ -153,8 +143,11 @@ namespace WebAppRBACDotNet.Controllers
         public ActionResult RemoveRole(FormCollection formCollection)
         {
             // Remove role mapping assignments marked by checkboxes
-            XmlHelper.RemoveRoleMappingsFromXml(formCollection);
-
+            foreach (string key in formCollection.Keys)
+            {
+                if (formCollection[key].Equals("delete"))
+                    DbAccess.RemoveRoleMapping(Convert.ToInt32(key));
+            }
             return RedirectToAction("Index", "Roles", null);
         }
 

@@ -14,17 +14,24 @@
                 <th>Status</th>
             </tr>
 
-            @foreach (WebAppRBACDotNet.Models.TaskElem task in (List<WebAppRBACDotNet.Models.TaskElem>)ViewData["tasks"])
+            @foreach (WebAppRBACDotNet.Models.Task task in (List<WebAppRBACDotNet.Models.Task>)ViewData["tasks"])
             {
                 <tr>
-                    <td>@task.Task</td>
+                    <td>@task.TaskText</td>
                     @if (User.IsInRole("Approver") || User.IsInRole("Admin"))
                     {
                         <td>
-                            <select name="@task.TaskId">
-                                @foreach (string str in (string[])task.GetStatusMenu())
+                            <select name="@task.TaskID">
+                                @foreach (string status in WebAppRBACDotNet.Utils.Globals.Statuses)
                                 {
-                                    <option value="@str"> @str</option>
+                                    if (status == task.Status)
+                                    {
+                                        <option value="@status" selected>@status</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@status">@status</option>
+                                    }
                                 }
                             </select>
                         </td>

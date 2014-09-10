@@ -1,7 +1,7 @@
-﻿using System.Web.Mvc;
-
+﻿using RBACSampleADALv2.Utils;
+using System;
+using System.Web.Mvc;
 //The following libraries were defined and added to this sample.
-using WebAppRBACDotNet.Helpers;
 
 namespace WebAppRBACDotNet.Controllers
 {
@@ -18,7 +18,7 @@ namespace WebAppRBACDotNet.Controllers
         public ActionResult Index()
         {
             ViewBag.Message = "Tasks";
-            ViewData["tasks"] = XmlHelper.GetTaskElemsFromXml();
+            ViewData["tasks"] = DbAccess.GetAllTasks();
             return View();
         }
 
@@ -38,15 +38,17 @@ namespace WebAppRBACDotNet.Controllers
             {
                 // Add A New task to Tasks.xml
                 if (formCollection["newTask"] != null && formCollection["newTask"].Length != 0)
-                {
-                    XmlHelper.AppendTaskElemToXml(formCollection);
-                }
+                    DbAccess.AddTask(formCollection["newTask"]);
             }
 
             if (User.IsInRole("Admin") || User.IsInRole("Approver"))
             {
                 // Change status of existing task
-                XmlHelper.ChangeTaskAttribute(formCollection);
+                    foreach (string key in formCollection.Keys)
+                    { 
+                        if (key != "newtask")
+                            DbAccess.UpdateTask(Convert.ToInt32(key), formCollection[key]);
+                    }
             }
 
             return RedirectToAction("Index", "Tasks");
