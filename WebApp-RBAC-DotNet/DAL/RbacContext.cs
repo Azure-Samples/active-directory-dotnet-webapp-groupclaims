@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RBACSampleADALv2.Models;
+using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
@@ -13,5 +14,6 @@ namespace WebAppRBACDotNet.DAL
 
         public DbSet<RoleMapping> RoleMappings { get; set; }
         public DbSet<Task> Tasks { get; set; }
+        public DbSet<TokenCacheEntry> TokenCacheEntries { get; set; }
     }
 }

@@ -75,7 +75,7 @@ namespace WebAppRBACDotNet
                             ClaimsIdentity claimsId = context.AuthenticationTicket.Identity;
                             ClientCredential credential = new ClientCredential(clientId, appKey);
                             string userObjectId = claimsId.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier").Value;
-                            var authContext = new AuthenticationContext(Authority, new NaiveSessionCache(userObjectId));
+                            var authContext = new AuthenticationContext(Authority, new TokenDbCache(userObjectId));
                             AuthenticationResult result = authContext.AcquireTokenByAuthorizationCode(
                                 context.Code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential, graphResourceId);
 

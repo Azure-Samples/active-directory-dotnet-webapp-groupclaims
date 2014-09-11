@@ -10,6 +10,7 @@ using Microsoft.Owin.Security.OpenIdConnect;
 
 //The following libraries were defined and added to this sample.
 using WebAppRBACDotNet.Utils;
+using RBACSampleADALv2.Utils;
 
 namespace WebAppRBACDotNet.Controllers
 {
@@ -36,7 +37,7 @@ namespace WebAppRBACDotNet.Controllers
             // Remove all cache entries for this user and send an OpenID Connect sign-out request.
             string userObjectID =
                 ClaimsPrincipal.Current.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier").Value;
-            var authContext = new AuthenticationContext(Startup.Authority, new NaiveSessionCache(userObjectID));
+            var authContext = new AuthenticationContext(Startup.Authority, new TokenDbCache(userObjectID));
             authContext.TokenCache.Clear();
 
             HttpContext.GetOwinContext().Authentication.SignOut(

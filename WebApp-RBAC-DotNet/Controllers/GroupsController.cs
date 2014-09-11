@@ -11,6 +11,7 @@ using Microsoft.Owin.Security.OpenIdConnect;
 
 //The following libraries were defined and added to this sample.
 using WebAppRBACDotNet.Utils;
+using RBACSampleADALv2.Utils;
 
 namespace WebAppRBACDotNet.Controllers
 {
@@ -32,7 +33,7 @@ namespace WebAppRBACDotNet.Controllers
             {
                 string userObjectId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
                 var authContext = new AuthenticationContext(Startup.Authority,
-                    new NaiveSessionCache(userObjectId));
+                    new TokenDbCache(userObjectId));
                 var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
                 result = authContext.AcquireTokenSilent(GraphConfiguration.GraphResourceId, credential,
                     new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));

@@ -47,7 +47,7 @@ namespace WebAppRBACDotNet.Controllers
             {
                 string userObjectId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
                 var authContext = new AuthenticationContext(Startup.Authority,
-                    new NaiveSessionCache(userObjectId));
+                    new TokenDbCache(userObjectId));
                 var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
                 result = authContext.AcquireTokenSilent(GraphConfiguration.GraphResourceId, credential,
                     new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
@@ -107,7 +107,7 @@ namespace WebAppRBACDotNet.Controllers
                 {
                     string userObjectId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
                     var authContext = new AuthenticationContext(Startup.Authority,
-                        new NaiveSessionCache(userObjectId));
+                        new TokenDbCache(userObjectId));
                     var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
                     result = authContext.AcquireTokenSilent(GraphConfiguration.GraphResourceId, credential,
                         new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));

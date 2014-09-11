@@ -1,6 +1,7 @@
 ﻿using Microsoft.Azure.ActiveDirectory.GraphClient;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Owin.Security.OpenIdConnect;
+using RBACSampleADALv2.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,7 +25,7 @@ namespace WebAppRBACDotNet.Controllers
             try
             {
                 var authContext = new AuthenticationContext(Startup.Authority,
-                    new NaiveSessionCache(userObjectId));
+                    new TokenDbCache(userObjectId));
                 var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
                 result = authContext.AcquireTokenSilent(GraphConfiguration.GraphResourceId, credential,
                     new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
@@ -83,7 +84,7 @@ namespace WebAppRBACDotNet.Controllers
             try
             {
                 var authContext = new AuthenticationContext(Startup.Authority,
-                    new NaiveSessionCache(userObjectId));
+                    new TokenDbCache(userObjectId));
                 var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
                 result = authContext.AcquireTokenSilent(GraphConfiguration.GraphResourceId, credential,
                     new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
