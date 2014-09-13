@@ -15,6 +15,10 @@ using ExpressionHelper = Microsoft.Azure.ActiveDirectory.GraphClient.ExpressionH
 using WebAppRBACDotNet.Models;
 using WebAppRBACDotNet.Utils;
 using RBACSampleADALv2.Utils;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 
 namespace WebAppRBACDotNet.Controllers
@@ -83,6 +87,7 @@ namespace WebAppRBACDotNet.Controllers
             ViewData["mappings"] = mappings;
             ViewData["nameDict"] = nameDict;
             ViewData["roles"] = Globals.Roles;
+            ViewData["host"] = Request.Url.AbsoluteUri;
             return View();
         }
 
@@ -99,7 +104,7 @@ namespace WebAppRBACDotNet.Controllers
         public ActionResult AssignRole(FormCollection formCollection)
         {
             // Check for an input name
-            if (formCollection != null && formCollection["name"].Length > 0)
+            if (formCollection != null && formCollection["id"].Length > 0)
             {
                 //Get the Access Token for Calling Graph API from the cache
                 AuthenticationResult result = null;
@@ -118,14 +123,7 @@ namespace WebAppRBACDotNet.Controllers
                     return RedirectToAction("Index", "Roles", null);
                 }
 
-                // Get ObjectID of User Or Group from Name provided by user
-                string objectId = GetObjectIDFromDisplayNameOrUPN(result.AccessToken, formCollection["name"]);
-
-                // If object DNE, show an error
-                if (objectId == null)
-                    return RedirectToAction("ShowError", "Error", new { errorMessage = "User/Group Not Found." });
-
-                DbAccess.AddRoleMapping(objectId, formCollection["roletype"]);
+                DbAccess.AddRoleMapping(formCollection["id"], formCollection["role"]);
             }
 
             return RedirectToAction("Index", "Roles", null);
@@ -149,6 +147,98 @@ namespace WebAppRBACDotNet.Controllers
                     DbAccess.RemoveRoleMapping(Convert.ToInt32(key));
             }
             return RedirectToAction("Index", "Roles", null);
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async System.Threading.Tasks.Task<ActionResult> Search()
+        {
+            string inputValue = Request.QueryString["input"];
+            string numResults = Request.QueryString["quantity"];
+            string accessToken = null;
+            string usersRequestUrl = Globals.GraphResourceId + '/' + Startup.tenant +
+                "/users?api-version=" + GraphConfiguration.GraphApiVersion + "&$top=" + numResults;
+            if (inputValue.Length > 0)
+            {
+                usersRequestUrl += "&$filter=" +
+                "startswith(displayName,'" + inputValue +
+                "') or startswith(givenName,'" + inputValue +
+                "') or startswith(surname,'" + inputValue +
+                "') or startswith(userPrincipalName,'" + inputValue +
+                "') or startswith(mail,'" + inputValue +
+                "') or startswith(mailNickname,'" + inputValue +
+                "') or startswith(jobTitle,'" + inputValue +
+                "') or startswith(department,'" + inputValue +
+                "') or startswith(city,'" + inputValue + "')";
+            }
+            string groupsRequestUrl = Globals.GraphResourceId + '/' + Startup.tenant +
+                "/groups?api-version=" + GraphConfiguration.GraphApiVersion + "&$top=" + numResults;
+            if (inputValue.Length > 0)
+            {
+                groupsRequestUrl += "&$filter=" +
+                "startswith(displayName,'" + inputValue +
+                "') or startswith(mail,'" + inputValue +
+                "') or startswith(mailNickname,'" + inputValue + "')";
+            }
+
+            string usersJSON = "";
+            string groupsJSON = "";
+
+            try
+            {
+                string userObjectId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
+                var authContext = new AuthenticationContext(Startup.Authority, new TokenDbCache(userObjectId));
+                var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
+                accessToken = authContext.AcquireTokenSilent(GraphConfiguration.GraphResourceId, credential,
+                    new UserIdentifier(userObjectId, UserIdentifierType.UniqueId)).AccessToken;
+            }
+            catch (Exception e)
+            {
+                return Json(new { error = "unauthenticated" }, JsonRequestBehavior.AllowGet);
+            }
+            try
+            {
+                HttpClient client = new HttpClient();
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, usersRequestUrl);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                HttpResponseMessage response = await client.SendAsync(request);
+                if (response.IsSuccessStatusCode)
+                {
+                    usersJSON = await response.Content.ReadAsStringAsync();
+                }
+                else
+                {
+                    return Json(new { error = "graph api error" }, JsonRequestBehavior.AllowGet);
+                }
+            }
+            catch (Exception e)
+            {
+                return Json(new { error = "internal server error" }, JsonRequestBehavior.AllowGet);
+            }
+            try 
+            {
+                HttpClient client = new HttpClient();
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, groupsRequestUrl);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                HttpResponseMessage response = await client.SendAsync(request);
+                if (response.IsSuccessStatusCode)
+                {
+                    groupsJSON = await response.Content.ReadAsStringAsync();
+                }
+                else
+                {
+                    return Json(new { error = "graph api error" }, JsonRequestBehavior.AllowGet);
+                }
+            }
+            catch 
+            {
+                return Json(new { error = "internal server error" }, JsonRequestBehavior.AllowGet);
+            }
+
+            string responseJSON = "{\"groups\":" + groupsJSON + ",\"users\":" + usersJSON + ",\"numResults\":" + numResults + "}";
+            return this.Content(responseJSON, "application/json");
+
+
         }
 
         ////////////////////////////////////////////////////////////////////

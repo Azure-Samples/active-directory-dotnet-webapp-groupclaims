@@ -7,23 +7,99 @@
     <h2>Assign User Roles</h2>
 
     //Form to Assign a New Role
-    using (Html.BeginForm("AssignRole", "Roles", FormMethod.Post))
+    using (Html.BeginForm("AssignRole", "Roles", FormMethod.Post, new { id = "assign-form" }))
     {
-        <p>Enter User Principal or Group Name: <input type="text" name="name"></p>
-        <p>
-            Select Role:
-            <select name="roletype">
-                @foreach (String str in (List<String>)ViewData["roles"])
-                {
-                    if (str != "Owner")
-                    {
-                        <option value="@str"> @str</option>
-                    }
-                }
-            </select>
-        </p>
 
-        <input type="submit" value="Assign Role" />
+        ////////////////////////////////////////////////
+        // This is where the people picker code will go!
+        ////////////////////////////////////////////////
+        <div style="float:left" >
+            <p style="width:200px">Search for a User or Group:</p>
+            <p>
+                Select Role:
+                <select name="role">
+                    @foreach (String str in (List<String>)ViewData["roles"])
+                    {
+                        if (str != "Owner")
+                        {
+                            <option value="@str"> @str</option>
+                        }
+                    }
+                </select>
+            </p>
+
+            <input type="submit" id="submit-button" value="Assign Role" />
+        </div>
+        <div>
+            <input id="search" type="text" name="input" style="width:300px">
+            <input id="hidden-input" type="hidden" name="id" />
+            <div id="results" style="width:300px;height:200px;overflow-y:scroll;overflow-x:hidden;white-space:nowrap"></div>
+        </div>
+        
+        <script>
+            var numResults = 20;
+            var callback = function (results) {
+                var $results = $("#results").empty();
+                if (results.error != undefined)
+                {
+                    var $msg = $("<p>" + results.error + "</p>").css("color", "red");
+                    $results.append($msg);
+                    return;
+                }
+                var toAppend = [];
+                for (var i = 0; i < results.length; i++)
+                {
+                    var $elem;
+                    if (results[i].objectType == "Group")
+                    {
+                        $elem = $("<div>" + results[i].displayName + " (Security Group)</div>").attr("class",
+                            "result-elem").attr("data-selected", "false").attr("data-objectid", results[i].objectId);
+                    }
+                    else if (results[i].objectType == "User")
+                    {
+                        $elem = $("<div>" + results[i].displayName + " (" + results[i].userPrincipalName + ")</div>").attr("class",
+                            "result-elem").attr("data-selected", "false").attr("data-objectid", results[i].objectId);
+                    }
+
+                    
+                    toAppend.push($elem);
+                }
+                $results.append(toAppend);
+
+                $(".result-elem").click({picker: this}, function () {
+                    if ($(this).attr("data-selected") == "true")
+                    {
+                        $(this).attr("data-selected", "false");
+                        $(this).css("background-color", "white");
+                        picker.selected = null;
+                    }
+                    else if ($(this).attr("data-selected") == "false") {
+                        $(".result-elem").attr("data-selected", "false").css("background-color", "white");
+                        $(this).attr("data-selected", "true");
+                        $(this).css("background-color", "aqua");
+                        picker.selected = $(this).attr("data-objectId");
+                    }
+                });
+            };
+            var picker = AadPicker("https://localhost:44322/Roles/Search", numResults, callback);
+
+            picker.Search("");
+
+            $("#search").on('input', {picker: picker}, function (event) {
+                event.data.picker.Search($(this).val());
+            });
+
+            $("#submit-button").click({ picker: picker }, function () {
+                if (picker.selected == null)
+                    return;
+                var form = $("#assign-form").get()[0].elements["id"].value = picker.selected;
+            });
+
+        </script>
+    
+        ////////////////////////////////////////////////
+
+
     }
 
     //List out users in each role with checkboxes for removing roles

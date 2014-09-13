@@ -43,7 +43,7 @@ namespace WebAppRBACDotNet
         private static readonly string clientId = ConfigurationManager.AppSettings["ida:ClientId"];
         private static readonly string appKey = ConfigurationManager.AppSettings["ida:AppKey"];
         private static readonly string aadInstance = ConfigurationManager.AppSettings["ida:AADInstance"];
-        private static readonly string tenant = ConfigurationManager.AppSettings["ida:Tenant"];
+        public static readonly string tenant = ConfigurationManager.AppSettings["ida:Tenant"];
         private static readonly string postLogoutRedirectUri =
             ConfigurationManager.AppSettings["ida:PostLogoutRedirectUri"];
         public static readonly string Authority = String.Format(CultureInfo.InvariantCulture, aadInstance, tenant);
