@@ -10,7 +10,6 @@ using Microsoft.Owin.Security.OpenIdConnect;
 
 //The following libraries were defined and added to this sample.
 using WebAppRBACDotNet.Utils;
-using RBACSampleADALv2.Utils;
 
 namespace WebAppRBACDotNet.Controllers
 {

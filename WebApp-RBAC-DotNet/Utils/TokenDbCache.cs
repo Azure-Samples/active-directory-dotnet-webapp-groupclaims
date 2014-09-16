@@ -1,5 +1,5 @@
 ﻿using Microsoft.IdentityModel.Clients.ActiveDirectory;
-using RBACSampleADALv2.Models;
+using WebAppRBACDotNet.Models;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
@@ -7,7 +7,7 @@ using System.Linq;
 using System.Web;
 using WebAppRBACDotNet.DAL;
 
-namespace RBACSampleADALv2.Utils
+namespace WebAppRBACDotNet.Utils
 {
     public class TokenDbCache : TokenCache
     {

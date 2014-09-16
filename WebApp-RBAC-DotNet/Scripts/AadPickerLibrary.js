@@ -41,15 +41,8 @@
         .fail(function (jqxhr, textStatus, errorThrown) {
             alert(textStatus);
         })
-
-
-
-        // do some shit
-        // create a list of objects 
-        // pass to onSearch callback.
     };
     return new AadPicker();
-
 };
 
 

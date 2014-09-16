@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 
-namespace RBACSampleADALv2.Models
+namespace WebAppRBACDotNet.Models
 {
     public class TokenCacheEntry
     {

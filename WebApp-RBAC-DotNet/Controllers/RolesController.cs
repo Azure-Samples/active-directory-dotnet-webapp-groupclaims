@@ -14,7 +14,6 @@ using ExpressionHelper = Microsoft.Azure.ActiveDirectory.GraphClient.ExpressionH
 //The following libraries were defined and added to this sample.
 using WebAppRBACDotNet.Models;
 using WebAppRBACDotNet.Utils;
-using RBACSampleADALv2.Utils;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
@@ -53,7 +52,7 @@ namespace WebAppRBACDotNet.Controllers
                 var authContext = new AuthenticationContext(Startup.Authority,
                     new TokenDbCache(userObjectId));
                 var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
-                result = authContext.AcquireTokenSilent(GraphConfiguration.GraphResourceId, credential,
+                result = authContext.AcquireTokenSilent(Globals.GraphResourceId, credential,
                     new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
             }
             catch (Exception e)
@@ -82,8 +81,6 @@ namespace WebAppRBACDotNet.Controllers
             foreach (RoleMapping mapping in mappings)
                 nameDict[mapping.ObjectId] = GetDisplayNameFromObjectId(result.AccessToken, mapping.ObjectId);
             
-
-            //TODO: Pass Lists of Mappings to View For Presentation (RoleList thing)
             ViewData["mappings"] = mappings;
             ViewData["nameDict"] = nameDict;
             ViewData["roles"] = Globals.Roles;
@@ -114,7 +111,7 @@ namespace WebAppRBACDotNet.Controllers
                     var authContext = new AuthenticationContext(Startup.Authority,
                         new TokenDbCache(userObjectId));
                     var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
-                    result = authContext.AcquireTokenSilent(GraphConfiguration.GraphResourceId, credential,
+                    result = authContext.AcquireTokenSilent(Globals.GraphResourceId, credential,
                         new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
                 }
                 catch (Exception e)
@@ -149,6 +146,11 @@ namespace WebAppRBACDotNet.Controllers
             return RedirectToAction("Index", "Roles", null);
         }
 
+        /// <summary>
+        /// Used for the AadPickerLibrary that is used to search for users and groups.  Accepts a user input
+        /// and a number of results to retreive, and queries the graphAPI for possbble matches.
+        /// </summary>
+        /// <returns>JSON containing query results ot the Javascript library.</returns>
         [HttpGet]
         [Authorize(Roles = "Admin")]
         public async System.Threading.Tasks.Task<ActionResult> Search()
@@ -157,9 +159,10 @@ namespace WebAppRBACDotNet.Controllers
             string numResults = Request.QueryString["quantity"];
             string accessToken = null;
             string usersRequestUrl = Globals.GraphResourceId + '/' + Startup.tenant +
-                "/users?api-version=" + GraphConfiguration.GraphApiVersion + "&$top=" + numResults;
+                "/users?api-version=" + Globals.GraphApiVersion + "&$top=" + numResults;
             if (inputValue.Length > 0)
             {
+                // Construct the 2 queries to make to the GraphAPI
                 usersRequestUrl += "&$filter=" +
                 "startswith(displayName,'" + inputValue +
                 "') or startswith(givenName,'" + inputValue +
@@ -172,7 +175,7 @@ namespace WebAppRBACDotNet.Controllers
                 "') or startswith(city,'" + inputValue + "')";
             }
             string groupsRequestUrl = Globals.GraphResourceId + '/' + Startup.tenant +
-                "/groups?api-version=" + GraphConfiguration.GraphApiVersion + "&$top=" + numResults;
+                "/groups?api-version=" + Globals.GraphApiVersion + "&$top=" + numResults;
             if (inputValue.Length > 0)
             {
                 groupsRequestUrl += "&$filter=" +
@@ -184,18 +187,21 @@ namespace WebAppRBACDotNet.Controllers
             string usersJSON = "";
             string groupsJSON = "";
 
+            // Get the access token necessary for calling GraphAPI
             try
             {
                 string userObjectId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
                 var authContext = new AuthenticationContext(Startup.Authority, new TokenDbCache(userObjectId));
                 var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
-                accessToken = authContext.AcquireTokenSilent(GraphConfiguration.GraphResourceId, credential,
+                accessToken = authContext.AcquireTokenSilent(Globals.GraphResourceId, credential,
                     new UserIdentifier(userObjectId, UserIdentifierType.UniqueId)).AccessToken;
             }
             catch (Exception e)
             {
                 return Json(new { error = "unauthenticated" }, JsonRequestBehavior.AllowGet);
             }
+            
+            // Search for users based on user input.
             try
             {
                 HttpClient client = new HttpClient();
@@ -215,6 +221,8 @@ namespace WebAppRBACDotNet.Controllers
             {
                 return Json(new { error = "internal server error" }, JsonRequestBehavior.AllowGet);
             }
+
+            // Search for groups based on user input.
             try 
             {
                 HttpClient client = new HttpClient();
@@ -235,6 +243,7 @@ namespace WebAppRBACDotNet.Controllers
                 return Json(new { error = "internal server error" }, JsonRequestBehavior.AllowGet);
             }
 
+            // Encapsulate and combine JSON for returning to JS library.
             string responseJSON = "{\"groups\":" + groupsJSON + ",\"users\":" + usersJSON + ",\"numResults\":" + numResults + "}";
             return this.Content(responseJSON, "application/json");
 
@@ -244,7 +253,7 @@ namespace WebAppRBACDotNet.Controllers
         ////////////////////////////////////////////////////////////////////
         //////// HELPER FUNCTIONS
         ////////////////////////////////////////////////////////////////////
-
+        #region HelperFunctions
         /// <summary>
         /// Queries the GraphAPI to get the DisplayName of a Group or User from its ObjectID.
         /// </summary>
@@ -257,7 +266,7 @@ namespace WebAppRBACDotNet.Controllers
             // Setup Graph API connection
             Guid ClientRequestId = Guid.NewGuid();
             var graphSettings = new GraphSettings();
-            graphSettings.ApiVersion = GraphConfiguration.GraphApiVersion;
+            graphSettings.ApiVersion = Globals.GraphApiVersion;
             var graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
 
             try
@@ -287,49 +296,6 @@ namespace WebAppRBACDotNet.Controllers
                 }
             }
         }
-
-
-        /// <summary>
-        /// Queries the GraphAPI to get the ObjectID of a group or user from their name or UPN, respectively.
-        /// </summary>
-        /// <param name="accessToken">The OpenIDConnect access token used 
-        /// to query the GraphAPI</param>
-        /// <param name="name">The Display Name or UPN of the group or user, respectively.</param>
-        /// <returns>The ObjectID.</returns>
-        private static string GetObjectIDFromDisplayNameOrUPN(string accessToken, string name)
-        {
-            // Setup Graph API connection
-            Guid ClientRequestId = Guid.NewGuid();
-            var graphSettings = new GraphSettings();
-            graphSettings.ApiVersion = GraphConfiguration.GraphApiVersion;
-            var graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
-
-            // First, search GraphAPI for a User with corresponding UPN
-            var filter = new FilterGenerator();
-            filter.QueryFilter =
-                ExpressionHelper.CreateConditionalExpression(
-                    typeof(User), GraphProperty.UserPrincipalName, name, ExpressionType.Equal);
-            PagedResults<User> pagedUserResults = graphConnection.List<User>(null, filter);
-
-            // If found, return User ObjectID
-            if (pagedUserResults.Results != null && pagedUserResults.Results.Count > 0)
-            {
-                return pagedUserResults.Results[0].ObjectId;
-            }
-
-            // If not found, search GraphAPI for a Group with corresponding DisplayName
-            filter.QueryFilter = ExpressionHelper.CreateConditionalExpression(
-                typeof(Group), GraphProperty.DisplayName, name, ExpressionType.Equal);
-            PagedResults<Group> pagedGroupResults = graphConnection.List<Group>(null, filter);
-
-            // If found, return Group objectID
-            if (pagedGroupResults.Results != null && pagedGroupResults.Results.Count > 0)
-            {
-                return pagedGroupResults.Results[0].ObjectId;
-            }
-
-            // If object DNE, return null
-            return null;
-        }
+        #endregion
     }
 }

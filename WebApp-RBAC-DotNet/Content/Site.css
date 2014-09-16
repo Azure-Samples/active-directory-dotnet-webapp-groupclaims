@@ -40,3 +40,23 @@ input[type="checkbox"].input-validation-error {
 .validation-summary-valid {
     display: none;
 }
+
+.assign-role {
+    float:left;
+}
+
+.search-hint {
+    width:200px;    
+}
+
+#search {
+    width:300px;
+}
+
+#results {
+    width:300px;
+    height:200px;
+    overflow-y:scroll;
+    overflow-x:hidden;
+    white-space:nowrap
+}

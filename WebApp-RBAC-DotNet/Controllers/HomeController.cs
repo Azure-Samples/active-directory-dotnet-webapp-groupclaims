@@ -12,7 +12,6 @@ using Microsoft.Owin.Security.OpenIdConnect;
 //The following libraries were defined and added to this sample.
 using WebAppRBACDotNet.Models;
 using WebAppRBACDotNet.Utils;
-using RBACSampleADALv2.Utils;
 
 namespace WebAppRBACDotNet.Controllers
 {
@@ -57,7 +56,7 @@ namespace WebAppRBACDotNet.Controllers
                 var authContext = new AuthenticationContext(Startup.Authority,
                     new TokenDbCache(userObjectId));
                 var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
-                result = authContext.AcquireTokenSilent(GraphConfiguration.GraphResourceId, credential,
+                result = authContext.AcquireTokenSilent(Globals.GraphResourceId, credential,
                     new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
             }
             catch (Exception e)
@@ -84,7 +83,7 @@ namespace WebAppRBACDotNet.Controllers
             // Setup Graph Connection
             Guid clientRequestId = Guid.NewGuid();
             var graphSettings = new GraphSettings();
-            graphSettings.ApiVersion = GraphConfiguration.GraphApiVersion;
+            graphSettings.ApiVersion = Globals.GraphApiVersion;
             var graphConnection = new GraphConnection(result.AccessToken, clientRequestId, graphSettings);
 
             // For each Group Claim, we need to get the DisplayName of the Group from the GraphAPI

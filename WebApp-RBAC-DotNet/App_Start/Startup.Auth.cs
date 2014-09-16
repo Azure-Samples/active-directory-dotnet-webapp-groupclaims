@@ -16,18 +16,17 @@ using Microsoft.Owin.Security.OpenIdConnect;
 using System.Linq.Expressions;
 using System.Linq;
 using Owin;
-
-//The following libraries were defined and added to this sample.
-using WebAppRBACDotNet.Models;
-using WebAppRBACDotNet.Utils;
 using System.Net.Http;
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using System.Net;
 using System.Text;
+
+//The following libraries were defined and added to this sample.
+using WebAppRBACDotNet.Models;
+using WebAppRBACDotNet.Utils;
 using WebAppRBACDotNet.DAL;
-using RBACSampleADALv2.Utils;
 
 namespace WebAppRBACDotNet
 {
@@ -42,11 +41,10 @@ namespace WebAppRBACDotNet
       
         private static readonly string clientId = ConfigurationManager.AppSettings["ida:ClientId"];
         private static readonly string appKey = ConfigurationManager.AppSettings["ida:AppKey"];
-        private static readonly string aadInstance = ConfigurationManager.AppSettings["ida:AADInstance"];
-        public static readonly string tenant = ConfigurationManager.AppSettings["ida:Tenant"];
-        private static readonly string postLogoutRedirectUri =
-            ConfigurationManager.AppSettings["ida:PostLogoutRedirectUri"];
-        public static readonly string Authority = String.Format(CultureInfo.InvariantCulture, aadInstance, tenant);
+        private static readonly string aadInstance = Globals.AadInstance;
+        public static readonly string tenant = Globals.Tenant;
+        private static readonly string postLogoutRedirectUri = ConfigurationManager.AppSettings["ida:PostLogoutRedirectUri"];
+        public static readonly string Authority = Globals.Authority;
         private static string graphResourceId = "https://graph.windows.net";
 
         /// <summary>
@@ -68,34 +66,12 @@ namespace WebAppRBACDotNet
                     PostLogoutRedirectUri = postLogoutRedirectUri,
                     Notifications = new OpenIdConnectAuthenticationNotifications
                     {
-                        // If there is a code in the OpenID Connect response, redeem it for an access token and refresh token, and store those away.
-                        // This is also where we hook into a user login event and add our own custom application authorization logic.
-                        AuthorizationCodeReceived = async context =>
-                        {
-                            ClaimsIdentity claimsId = context.AuthenticationTicket.Identity;
-                            ClientCredential credential = new ClientCredential(clientId, appKey);
-                            string userObjectId = claimsId.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier").Value;
-                            var authContext = new AuthenticationContext(Authority, new TokenDbCache(userObjectId));
-                            AuthenticationResult result = authContext.AcquireTokenByAuthorizationCode(
-                                context.Code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential, graphResourceId);
-
-                            if (claimsId.FindFirst("_claim_sources") != null)
-                            {
-                                List<String> groupMemberships = await GetGroupsFromGraphAPI(result.AccessToken, claimsId);
-                                AssignRoles(userObjectId, groupMemberships, claimsId);
-                            }
-
-                            // In addition, we need to make sure application owners recieve the Application Role "Admin"
-                            AddOwnerMappings(userObjectId, result.AccessToken, claimsId);
-
-                            return;
-                        },
-
+                        // 
                         SecurityTokenValidated = context =>
                         {
                             ClaimsIdentity claimsId = context.AuthenticationTicket.Identity;
                             
-                            // If there is a group claim overage (too many groups to fit in the token), we'll need to query the Graph API
+                            // If we have not received a group claim overage, we can assign the user appropriate roles here.
                             if (claimsId.FindFirst("_claim_sources") == null)
                             {
                                 List<String> groupMemberships = new List<String>();
@@ -105,6 +81,30 @@ namespace WebAppRBACDotNet
                             }
                             
                             return System.Threading.Tasks.Task.FromResult(0);
+                        },
+
+                        // Redeem an Authorization Code recieved in an OpenIDConnect message for an Access Token & Refresh Token, and store them away.
+                        AuthorizationCodeReceived = async context =>
+                        {
+                            ClaimsIdentity claimsId = context.AuthenticationTicket.Identity;
+                            ClientCredential credential = new ClientCredential(clientId, appKey);
+                            string userObjectId = claimsId.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier").Value;
+                            var authContext = new AuthenticationContext(Authority, new TokenDbCache(userObjectId));
+                            AuthenticationResult result = authContext.AcquireTokenByAuthorizationCode(
+                                context.Code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential, graphResourceId);
+
+                            // If we received a group claims overage (too many groups to fit in the token), 
+                            // we need to query for the user's groups using our token for the GraphAPI before assigning roles.
+                            if (claimsId.FindFirst("_claim_sources") != null)
+                            {
+                                List<String> groupMemberships = await GetGroupsFromGraphAPI(result.AccessToken, claimsId);
+                                AssignRoles(userObjectId, groupMemberships, claimsId);
+                            }
+
+                            // We need an Access Token to assign Admin priviliges to the AAD Application Owners.
+                            AddOwnerMappings(userObjectId, result.AccessToken, claimsId);
+
+                            return;
                         }
                     }
                 });
@@ -116,12 +116,11 @@ namespace WebAppRBACDotNet
         ////////////////////////////////////////////////////////////////////
         #region HelperFunctions
         /// <summary>
-        /// Determine which application roles (Owner, Admin, Writer, Approver, Observer) the user has been granted.
+        /// Assign the application roles (Owner, Admin, Writer, Approver, Observer) that the user has been granted,
+        /// based on our user and group mappings stored in the db.
         /// </summary>
         /// <param name="objectId"> The signed-in user's ObjectID.</param>
-        /// <param name="groupMemberships">The list of <see cref="Group" /> ObjectIDs the signed-in
-        /// user belongs to.</param>
-        /// <returns>A List of Application Roles that the user has been granted</returns>
+        /// <param name="groupMemberships">The list of ObjectIDs of Groups the signed-in user belongs to.</param>
         private void AssignRoles(string userObjectId, List<String> groupMemberships, ClaimsIdentity claimsId)
         {
             RbacContext db = new RbacContext();
@@ -144,7 +143,6 @@ namespace WebAppRBACDotNet
         /// require several network hops as opposed to the 1 hop necessary here.
         /// </summary>
         /// <param name="accessToken">The OpenIDConnect access token, used here for querying the GraphAPI.</param>
-        /// <param name="userObjectId">The signed-in user's ObjectID</param>
         /// <param name="claimsIdentity">The <see cref="ClaimsIdenity" /> object that represents the 
         /// claims-based identity of the currently signed in user and contains thier claims.</param>
         /// <returns>A list of ObjectIDs representing the groups that the user is a member of.</returns>
@@ -154,7 +152,7 @@ namespace WebAppRBACDotNet
             string namesJSON = claimsIdentity.FindFirst("_claim_sources").Value;
             ClaimSource source = JsonConvert.DeserializeObject<ClaimSource>(namesJSON);
             string requestUrl = String.Format(CultureInfo.InvariantCulture, HttpUtility.HtmlEncode(source.src1.endpoint
-                + "?api-version=" + GraphConfiguration.GraphApiVersion));
+                + "?api-version=" + Globals.GraphApiVersion));
             
             // Prepare and Make the POST request
             HttpClient client = new HttpClient();
@@ -185,22 +183,24 @@ namespace WebAppRBACDotNet
 
 
         /// <summary>
-        /// Checks to see if the user is an application owner. If so, assigns the user the application role of "Admin" 
-        /// by adding its ObjectID to the Roles.xml file.  This is to ensure that
-        /// at least one user can initially login and assign application roles to other users. 
+        /// Checks to see if the signed-in user is an application owner. If so, assigns the user the application 
+        /// role "Owner" in the database and grants them "Admin" priviliges.  This is to ensure that
+        /// at least one user can login and assign application roles to other users the first time we run the app.
         /// There are several other ways to accomplish this.
         /// </summary>
         /// <param name="accessToken">The Access token, used here to query the GraphAPI.</param>
-        /// <param name="claimsIdentity">The <see cref="ClaimsIdenity" /> object that represents the 
+        /// <param name="claimsId">The <see cref="ClaimsIdenity" /> object that represents the 
         /// claims-based identity of the currently signed in user and contains thier claims.</param>
+        /// <param name="userObjectId"> The ObjectId of the signed in user.</param>
         private void AddOwnerMappings(string userObjectId, string accessToken, ClaimsIdentity claimsId)
         {
+            // Every time a user signs in, we rewrite the list of owners in case owners have been removed in the Azure Portal.
             DbAccess.RemoveExistingOwnerMappings();
             
             // Setup Graph API connection
             Guid ClientRequestId = Guid.NewGuid();
             var graphSettings = new GraphSettings();
-            graphSettings.ApiVersion = GraphConfiguration.GraphApiVersion;
+            graphSettings.ApiVersion = Globals.GraphApiVersion;
             var graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
 
             try

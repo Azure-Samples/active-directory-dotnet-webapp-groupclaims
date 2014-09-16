@@ -1,6 +1,6 @@
-﻿using RBACSampleADALv2.Utils;
-using System;
+﻿using System;
 using System.Web.Mvc;
+using WebAppRBACDotNet.Utils;
 //The following libraries were defined and added to this sample.
 
 namespace WebAppRBACDotNet.Controllers

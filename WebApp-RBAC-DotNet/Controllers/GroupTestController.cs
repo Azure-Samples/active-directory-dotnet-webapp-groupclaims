@@ -1,7 +1,6 @@
 ﻿using Microsoft.Azure.ActiveDirectory.GraphClient;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Owin.Security.OpenIdConnect;
-using RBACSampleADALv2.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,7 +26,7 @@ namespace WebAppRBACDotNet.Controllers
                 var authContext = new AuthenticationContext(Startup.Authority,
                     new TokenDbCache(userObjectId));
                 var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
-                result = authContext.AcquireTokenSilent(GraphConfiguration.GraphResourceId, credential,
+                result = authContext.AcquireTokenSilent(Globals.GraphResourceId, credential,
                     new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
             }
             catch (Exception e)
@@ -54,7 +53,7 @@ namespace WebAppRBACDotNet.Controllers
             // Setup Graph API connection
             Guid ClientRequestId = Guid.NewGuid();
             var graphSettings = new GraphSettings();
-            graphSettings.ApiVersion = GraphConfiguration.GraphApiVersion;
+            graphSettings.ApiVersion = Globals.GraphApiVersion;
             var graphConnection = new GraphConnection(result.AccessToken, ClientRequestId, graphSettings);
 
             // Get Current User
@@ -86,7 +85,7 @@ namespace WebAppRBACDotNet.Controllers
                 var authContext = new AuthenticationContext(Startup.Authority,
                     new TokenDbCache(userObjectId));
                 var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
-                result = authContext.AcquireTokenSilent(GraphConfiguration.GraphResourceId, credential,
+                result = authContext.AcquireTokenSilent(Globals.GraphResourceId, credential,
                     new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
             }
             catch (Exception e)
@@ -113,7 +112,7 @@ namespace WebAppRBACDotNet.Controllers
             // Setup Graph API connection
             Guid ClientRequestId = Guid.NewGuid();
             var graphSettings = new GraphSettings();
-            graphSettings.ApiVersion = GraphConfiguration.GraphApiVersion;
+            graphSettings.ApiVersion = Globals.GraphApiVersion;
             var graphConnection = new GraphConnection(result.AccessToken, ClientRequestId, graphSettings);
 
             // Query for the List of Security Groups.

@@ -9,12 +9,8 @@
     //Form to Assign a New Role
     using (Html.BeginForm("AssignRole", "Roles", FormMethod.Post, new { id = "assign-form" }))
     {
-
-        ////////////////////////////////////////////////
-        // This is where the people picker code will go!
-        ////////////////////////////////////////////////
-        <div style="float:left" >
-            <p style="width:200px">Search for a User or Group:</p>
+        <div class="assign-role">
+            <p class="search-hint">Search for a User or Group:</p>
             <p>
                 Select Role:
                 <select name="role">
@@ -31,15 +27,18 @@
             <input type="submit" id="submit-button" value="Assign Role" />
         </div>
         <div>
-            <input id="search" type="text" name="input" style="width:300px">
+            <input id="search" type="text" name="input">
             <input id="hidden-input" type="hidden" name="id" />
-            <div id="results" style="width:300px;height:200px;overflow-y:scroll;overflow-x:hidden;white-space:nowrap"></div>
+            <div id="results"></div>
         </div>
-        
+    
+        // People/Group Picker Code
         <script>
             var numResults = 20;
+
+            // When we receive a list of search results, clear the current list and replace it.
             var callback = function (results) {
-                var $results = $("#results").empty();
+                var $results = $("#results");
                 if (results.error != undefined)
                 {
                     var $msg = $("<p>" + results.error + "</p>").css("color", "red");
@@ -61,11 +60,13 @@
                             "result-elem").attr("data-selected", "false").attr("data-objectid", results[i].objectId);
                     }
 
-                    
                     toAppend.push($elem);
                 }
+
+                $results.empty();
                 $results.append(toAppend);
 
+                // Select a user/group code
                 $(".result-elem").click({picker: this}, function () {
                     if ($(this).attr("data-selected") == "true")
                     {
@@ -81,14 +82,23 @@
                     }
                 });
             };
-            var picker = AadPicker("https://localhost:44322/Roles/Search", numResults, callback);
 
+            // Initialize the AadPicker library with a search endpoint to call,
+            // a quantity of results desired, and a callback for when searches finish.
+
+            var searchUrl = window.location.protocol + "//" + window.location.host + "/Roles/Search";
+
+            var picker = AadPicker(searchUrl, numResults, callback);
+            
+            // Fill the search results box when the page loads.
             picker.Search("");
 
+            // Search on user input
             $("#search").on('input', {picker: picker}, function (event) {
                 event.data.picker.Search($(this).val());
             });
 
+            // Submit the selected user/group to be asssigned.
             $("#submit-button").click({ picker: picker }, function () {
                 if (picker.selected == null)
                     return;
@@ -96,10 +106,6 @@
             });
 
         </script>
-    
-        ////////////////////////////////////////////////
-
-
     }
 
     //List out users in each role with checkboxes for removing roles

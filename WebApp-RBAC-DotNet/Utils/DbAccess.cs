@@ -5,7 +5,7 @@ using System.Web;
 using WebAppRBACDotNet.DAL;
 using WebAppRBACDotNet.Models;
 
-namespace RBACSampleADALv2.Utils
+namespace WebAppRBACDotNet.Utils
 {
     public class DbAccess
     {
@@ -36,6 +36,7 @@ namespace RBACSampleADALv2.Utils
             db.RoleMappings.RemoveRange(existingOwners.ToList());
             db.SaveChanges();
         }
+
 
         public static List<RoleMapping> GetAllRoleMappings()
         {
