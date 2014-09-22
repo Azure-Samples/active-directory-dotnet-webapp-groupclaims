@@ -85,6 +85,8 @@ namespace WebAppRBACDotNet.Controllers
             ViewData["nameDict"] = nameDict;
             ViewData["roles"] = Globals.Roles;
             ViewData["host"] = Request.Url.AbsoluteUri;
+            ViewData["token"] = result.AccessToken;
+            ViewData["tenant"] = Globals.Tenant;
             return View();
         }
 
@@ -151,66 +153,20 @@ namespace WebAppRBACDotNet.Controllers
         /// and a number of results to retreive, and queries the graphAPI for possbble matches.
         /// </summary>
         /// <returns>JSON containing query results ot the Javascript library.</returns>
-        [HttpGet]
+        [HttpPost]
         [Authorize(Roles = "Admin")]
-        public async System.Threading.Tasks.Task<ActionResult> Search()
+        public async System.Threading.Tasks.Task<ActionResult> Search(string query, string token)
         {
-            string inputValue = Request.QueryString["input"];
-            string numResults = Request.QueryString["quantity"];
-            string accessToken = null;
-            string usersRequestUrl = Globals.GraphResourceId + '/' + Startup.tenant +
-                "/users?api-version=" + Globals.GraphApiVersion + "&$top=" + numResults;
-            if (inputValue.Length > 0)
-            {
-                // Construct the 2 queries to make to the GraphAPI
-                usersRequestUrl += "&$filter=" +
-                "startswith(displayName,'" + inputValue +
-                "') or startswith(givenName,'" + inputValue +
-                "') or startswith(surname,'" + inputValue +
-                "') or startswith(userPrincipalName,'" + inputValue +
-                "') or startswith(mail,'" + inputValue +
-                "') or startswith(mailNickname,'" + inputValue +
-                "') or startswith(jobTitle,'" + inputValue +
-                "') or startswith(department,'" + inputValue +
-                "') or startswith(city,'" + inputValue + "')";
-            }
-            string groupsRequestUrl = Globals.GraphResourceId + '/' + Startup.tenant +
-                "/groups?api-version=" + Globals.GraphApiVersion + "&$top=" + numResults;
-            if (inputValue.Length > 0)
-            {
-                groupsRequestUrl += "&$filter=" +
-                "startswith(displayName,'" + inputValue +
-                "') or startswith(mail,'" + inputValue +
-                "') or startswith(mailNickname,'" + inputValue + "')";
-            }
-
-            string usersJSON = "";
-            string groupsJSON = "";
-
-            // Get the access token necessary for calling GraphAPI
-            try
-            {
-                string userObjectId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
-                var authContext = new AuthenticationContext(Startup.Authority, new TokenDbCache(userObjectId));
-                var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
-                accessToken = authContext.AcquireTokenSilent(Globals.GraphResourceId, credential,
-                    new UserIdentifier(userObjectId, UserIdentifierType.UniqueId)).AccessToken;
-            }
-            catch (Exception e)
-            {
-                return Json(new { error = "unauthenticated" }, JsonRequestBehavior.AllowGet);
-            }
-            
             // Search for users based on user input.
             try
             {
                 HttpClient client = new HttpClient();
-                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, usersRequestUrl);
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, query);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 HttpResponseMessage response = await client.SendAsync(request);
                 if (response.IsSuccessStatusCode)
                 {
-                    usersJSON = await response.Content.ReadAsStringAsync();
+                    return this.Content(await response.Content.ReadAsStringAsync());
                 }
                 else
                 {
@@ -221,33 +177,6 @@ namespace WebAppRBACDotNet.Controllers
             {
                 return Json(new { error = "internal server error" }, JsonRequestBehavior.AllowGet);
             }
-
-            // Search for groups based on user input.
-            try 
-            {
-                HttpClient client = new HttpClient();
-                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, groupsRequestUrl);
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                HttpResponseMessage response = await client.SendAsync(request);
-                if (response.IsSuccessStatusCode)
-                {
-                    groupsJSON = await response.Content.ReadAsStringAsync();
-                }
-                else
-                {
-                    return Json(new { error = "graph api error" }, JsonRequestBehavior.AllowGet);
-                }
-            }
-            catch 
-            {
-                return Json(new { error = "internal server error" }, JsonRequestBehavior.AllowGet);
-            }
-
-            // Encapsulate and combine JSON for returning to JS library.
-            string responseJSON = "{\"groups\":" + groupsJSON + ",\"users\":" + usersJSON + ",\"numResults\":" + numResults + "}";
-            return this.Content(responseJSON, "application/json");
-
-
         }
 
         ////////////////////////////////////////////////////////////////////

@@ -59,7 +59,7 @@ namespace WebAppRBACDotNet.Controllers
             // Get Current User
             var user = graphConnection.Get<User>(userObjectId);
 
-            for (int i = 0; i < 300; i++)
+            for (int i = 0; i < 20; i++)
             {
                 Group newGroup = new Group();
                 newGroup.DisplayName = "Test Group " + i.ToString();

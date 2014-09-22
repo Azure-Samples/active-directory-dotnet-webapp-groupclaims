@@ -29,80 +29,24 @@
         <div>
             <input id="search" type="text" name="input">
             <input id="hidden-input" type="hidden" name="id" />
-            <div id="results"></div>
+            <div class="aadpicker-search-results"></div> @*OPTIONAL!!!*@
         </div>
     
         // People/Group Picker Code
         <script>
-            var numResults = 20;
-
-            // When we receive a list of search results, clear the current list and replace it.
-            var callback = function (results) {
-                var $results = $("#results");
-                if (results.error != undefined)
-                {
-                    var $msg = $("<p>" + results.error + "</p>").css("color", "red");
-                    $results.append($msg);
-                    return;
-                }
-                var toAppend = [];
-                for (var i = 0; i < results.length; i++)
-                {
-                    var $elem;
-                    if (results[i].objectType == "Group")
-                    {
-                        $elem = $("<div>" + results[i].displayName + " (Security Group)</div>").attr("class",
-                            "result-elem").attr("data-selected", "false").attr("data-objectid", results[i].objectId);
-                    }
-                    else if (results[i].objectType == "User")
-                    {
-                        $elem = $("<div>" + results[i].displayName + " (" + results[i].userPrincipalName + ")</div>").attr("class",
-                            "result-elem").attr("data-selected", "false").attr("data-objectid", results[i].objectId);
-                    }
-
-                    toAppend.push($elem);
-                }
-
-                $results.empty();
-                $results.append(toAppend);
-
-                // Select a user/group code
-                $(".result-elem").click({picker: this}, function () {
-                    if ($(this).attr("data-selected") == "true")
-                    {
-                        $(this).attr("data-selected", "false");
-                        $(this).css("background-color", "white");
-                        picker.selected = null;
-                    }
-                    else if ($(this).attr("data-selected") == "false") {
-                        $(".result-elem").attr("data-selected", "false").css("background-color", "white");
-                        $(this).attr("data-selected", "true");
-                        $(this).css("background-color", "aqua");
-                        picker.selected = $(this).attr("data-objectId");
-                    }
-                });
-            };
-
-            // Initialize the AadPicker library with a search endpoint to call,
-            // a quantity of results desired, and a callback for when searches finish.
-
+            var maxResultsPerPage = 14;
             var searchUrl = window.location.protocol + "//" + window.location.host + "/Roles/Search";
+            var input = document.getElementById("search");
+            var token = "@ViewData["token"]";
+            var tenant = "@ViewData["tenant"]";
 
-            var picker = AadPicker(searchUrl, numResults, callback);
+            var picker = AadPicker(searchUrl, maxResultsPerPage, input, token, tenant);
             
-            // Fill the search results box when the page loads.
-            picker.Search("");
-
-            // Search on user input
-            $("#search").on('input', {picker: picker}, function (event) {
-                event.data.picker.Search($(this).val());
-            });
-
             // Submit the selected user/group to be asssigned.
             $("#submit-button").click({ picker: picker }, function () {
-                if (picker.selected == null)
+                if (!picker.selected)
                     return;
-                var form = $("#assign-form").get()[0].elements["id"].value = picker.selected;
+                var form = $("#assign-form").get()[0].elements["id"].value = picker.selected.objectId;
             });
 
         </script>
