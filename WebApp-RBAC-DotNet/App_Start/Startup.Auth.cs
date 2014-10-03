@@ -212,7 +212,6 @@ namespace WebAppRBACDotNet
             catch (Exception e)
             {
                 // Graph Error, Ignore and do not grant admin access
-                // TODO: What kind of error to show when something happens on login in general?
             }
         }
         #endregion
