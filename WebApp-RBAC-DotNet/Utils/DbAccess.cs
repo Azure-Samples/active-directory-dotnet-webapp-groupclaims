@@ -7,8 +7,11 @@ using WebAppRBACDotNet.Models;
 
 namespace WebAppRBACDotNet.Utils
 {
+    // Handles all interaction with the database for Tasks and Roles.
+    // Token database access is handled automatically by ADAL 
     public class DbAccess
     {
+        // Add a new role mapping if it doesn't exist already.
         public static void AddRoleMapping(string objectId, string role)
         {
             RbacContext db = new RbacContext();
@@ -27,6 +30,7 @@ namespace WebAppRBACDotNet.Utils
             db.SaveChanges();
         }
 
+        // Remove the owner mappings from the db so that the list of owners is refreshed each time someone logs in.
         public static void RemoveExistingOwnerMappings()
         {
             RbacContext db = new RbacContext();
@@ -37,13 +41,14 @@ namespace WebAppRBACDotNet.Utils
             db.SaveChanges();
         }
 
-
+        // Get all the role mappings from the db.
         public static List<RoleMapping> GetAllRoleMappings()
         {
             RbacContext db = new RbacContext();
             return db.RoleMappings.ToList();
         }
 
+        // Remove a role mapping if it exists.
         public static void RemoveRoleMapping(int mappingId)
         {
             RbacContext db = new RbacContext();
@@ -52,12 +57,14 @@ namespace WebAppRBACDotNet.Utils
             db.SaveChanges();
         }
 
+        // Get all tasks from the db.
         public static List<Task> GetAllTasks()
         {
             RbacContext db = new RbacContext();
             return db.Tasks.ToList();            
         }
 
+        // Add a task to the db.
         public static void AddTask(string taskText)
         {
             RbacContext db = new RbacContext();
@@ -70,6 +77,7 @@ namespace WebAppRBACDotNet.Utils
             db.SaveChanges();
         }
 
+        //Update an existing task in the db.
         public static void UpdateTask(int taskId, string status)
         {
             RbacContext db = new RbacContext();

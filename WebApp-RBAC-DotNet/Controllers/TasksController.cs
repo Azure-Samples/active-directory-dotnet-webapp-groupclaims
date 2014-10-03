@@ -8,7 +8,7 @@ namespace WebAppRBACDotNet.Controllers
     public class TasksController : Controller
     {
         /// <summary>
-        /// Lists Out the Tasks from Tasks.xml.  RBAC to editing tasks is controlled by 
+        /// Lists Out the Tasks stored in the database.  RBAC to editing tasks is controlled by 
         /// the View and other controller actions.  Requires the user has at least one
         /// of the application roles to view tasks.
         /// </summary>
@@ -24,7 +24,7 @@ namespace WebAppRBACDotNet.Controllers
 
         
         /// <summary>
-        /// Add a new task to Tasks.xml or Update the Status of an Existing Task.  Requires that
+        /// Add a new task to the database or Update the Status of an Existing Task.  Requires that
         /// the user has a application role of Admin, Writer, or Approver, and only allows certain actions based
         /// on which role(s) the user has been granted.
         /// </summary>

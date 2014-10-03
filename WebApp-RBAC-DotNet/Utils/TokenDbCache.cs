@@ -30,11 +30,16 @@ namespace WebAppRBACDotNet.Utils
             this.Deserialize((Cache == null) ? null : Cache.cacheBits);
         }
 
-        // clean up the DB
+        // clean the db of all tokens associated with the user.
         public override void Clear()
         {
             base.Clear();
-            foreach (var cacheEntry in db.TokenCacheEntries)
+
+            var tokens = from e in db.TokenCacheEntries
+                         where (e.userObjId == userObjId)
+                         select e;
+
+            foreach (var cacheEntry in tokens.ToList())
                 db.TokenCacheEntries.Remove(cacheEntry);
             db.SaveChanges();
         }
