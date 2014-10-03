@@ -18,11 +18,11 @@ This kind of access control or authorization is implemented using role based acc
 
 It is imporant to make the distinction between these *Application Roles* and the *Directory Roles* that are built into Azure Active Directory.  For a complete list of built-in directory roles, use the [Get-MsolRole](http://technet.microsoft.com/en-us/library/dn194100.aspx) cmdlet.
 
-The application also incorporates group membership for enforcing authorization policies.  In addition to assigning roles directly to users, application Admins can assign roles to Azure Active Directory Security Groups, and assign users to those groups.  In this sample, we manage user membership to Security Groups through the [Azure Management Portal](https://manage.windowsazure.com/), but it can also be accomplished programatically using the [AAD Graph API](http://msdn.microsoft.com/en-us/library/azure/hh974476.aspx).  To determine which Security Groups a user belongs to, the application uses Group Claims that are included in the OpenIDConnect access token acquired at login, which allows us to determine group membership without having to make extra calls to the Graph API.
+The application also incorporates group membership for enforcing authorization policies.  In addition to assigning roles directly to users, application Admins can assign roles to Azure Active Directory Security Groups, and assign users to those groups.  In this sample, we manage user membership to Security Groups through the [Azure Management Portal](https://manage.windowsazure.com/), but it can also be accomplished programatically using the [AAD Graph API](http://msdn.microsoft.com/en-us/library/azure/hh974476.aspx).
 
-In order to persist a record of the Application Roles each user and group has been granted, the Task Tracker application contains a Roles.xml file that stores the mappings of both users and Security Groups to Application Roles.  In addition, it stores tasks that have been created in a Tasks.xml file for future access.
+In order to persist a record of the Application Roles each user and group has been granted, the Task Tracker application stores the mappings of both users and Security Groups to Application Roles in a database.  In addition, it stores tasks that have been created in the database for future access.
 
-Using RBAC with custom Application Roles, built-in Azure Active Directory Roles, and Azure Active Directory Security Groups, this application securely enforces authorization policies with simple management of users and groups.
+Using RBAC with custom Application Roles and Azure Active Directory Security Groups, this application securely enforces authorization policies with simple management of users and groups.
 
 
 
@@ -72,14 +72,15 @@ If you already have a user account with Global Administrator rights in your Azur
 5. Find the app key `ida:AppKey` and replace the value with the key for the application from the Azure portal.
 6. If you changed the base URL of the TodoListWebApp sample, find the app key `ida:PostLogoutRedirectUri` and replace the value with the new base URL of the sample.
 
-### Step 5: Configure your application to recieve Group Claims
-1. Coming Soon
-
 ### Step 6:  Run the sample
 
 Clean the solution, rebuild the solution, and run it.  Explore the sample by signing in, navigating to different pages, adding tasks, signing out, etc.  Create several user accounts in the Azure Management Portal, and assign them different roles using the application owner account you created.  Create a Security Group in the Azure Management Portal, add users to it, and again add roles to it using an Admin account.  Explore the differences between each role throughout the application, namely the Tasks and Roles pages.
 
 
 ## Code Walk-Through
+
+Coming soon.
+
+## Deploy this Sample to Azure
 
 Coming soon.
