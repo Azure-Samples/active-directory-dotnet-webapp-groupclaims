@@ -1,0 +1,4 @@
+# Ignoring db files so that App_Data is pushed.
+*
+# Except...
+!.gitignore
