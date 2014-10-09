@@ -79,7 +79,70 @@ Clean the solution, rebuild the solution, and run it.  Explore the sample by sig
 
 ## Code Walk-Through
 
-Coming soon.
+This section will help you understand the important sections of the sample and how to create the sample from scratch.
+
+### Get Started
+
+1. Open up Visual Studio 2013, and create a new ASP.NET Web Application.  In the New Project dialog, select MVC, and Change Authentication to "No Authentication." Click OK to create your project.
+2. In the project properties, Set SSL Enabled to be True.  Note the SSL URL.
+3. Right click on the Project, select Properties --> Web, and set the Project Url to be the SSL URL from above.
+4. Add the following NuGets to your project: `Microsoft.Owin.Security.OpenIdConnect`, `Microsoft.Owin.Security.Cookies`, `EntityFramework`, `Microsoft.Azure.ActiveDirectory.GraphClient`, `Microsoft.Owin.Host.SystemWeb`, `Microsoft.IdentityModel.Clients.ActiveDirectory`.
+
+#### Enable Users to Sign-In
+
+1. A good place to start is with authentication.  In `Views\Shared` add a MVC5 Partial Page `_LoginPartial.cshtml`.  Replace the contents of the file with the contents of the file of same name from the sample.
+2. Also in `Views\Shared`, replace the contents of `_Layout.cshtml` with the code from the sample.  This will light up the `_LoginParital` view from above, ensure that only Admins can view the role management page, and include some of the javascript necessary for later.
+3. In `Controllers`, add a new empty controller and name it AccountController.  Replace its implementation with the sample's.  Don't worry about the `WebAppRBACDotNet` namespace for now, you'll do a global search and replace later.  This controller handles authentication when the user clicks on 'Sign In' or 'Sign Out' in our `_LoginPartial` view.
+4. Right-click on the project, select Add --> Class.  In the Add Class dialog, search for "OWIN". Select "OWIN Startup Class" from the results, and name your new OWIN Startup Class `Startup.cs`.  Remove the `.App_Start` portion of the namespace.  You can replace the implementation of this class with the one from the sample - but all you need to do here is change the class declaration to a partial class, and call the ConfigureAuth method.
+5. In the `App_Start` folder, create a class `Startup.Auth.cs`.  Replace the code for the `Startup` class with the code from the sample.  This class uses the OWIN middleware for authenticating the user to AAD, by sending and receiving messages according to the OpenIDConnect protocol.  If you would like to see this authentication in action, check out our [WebApp-OpenIDConnect-DotNet](https://github.com/AzureADSamples/WebApp-OpenIDConnect-DotNet) sample.  This Startup class also contains much of the logic necessary for implementing RBAC - but we'll come back to that shortly.
+
+#### Build the Database Schema
+
+1. First, in `Models`, create three new classes - `RoleMapping.cs`, `Task.cs`, and `TokenCacheEntry.cs`.  These will serve as the all of the data models our application needs to persist data.  Copy each of their implementations from the sample.  In `Task.cs` you can see each task has an associated TaskID, TaskText, and Status.  Similarly, a RoleMapping object contains an ID, an ObjectID, and a Role.  The RoleMapping object represents a tie between an AAD object (a user or a group) and an application role (Admin, Approver, Writer, Observer), and will be used to persist a record of application role grants.  Lastly, the TokenCacheEntry object is used to persist AAD access tokens needed for calling the AAD Graph API on a per-user basis.
+2. Next, create a new folder in your project called `DAL`, and within it add a new class `RbacContext.cs`, copying the sample's implementation.  This class will be used by Entity Framework 6 to construct the database schema, which you can see contains a table for RoleMappings, Tasks, and TokenCacheEntries.
+3. Create another new folder called `Utils`.  Add a new class to that folder called `DbAccess`, and copy in the implementation from the sample.  This class handles all reads and writes to the database for both Tasks and RBAC data.
+4. Also create a new class in `Utils` called `TokenDbCache`, and copy in the sample's code.  This class handles all reads and writes to the database for AAD Access Tokens. 
+
+#### Create the Task Tracker
+
+1. To create the actual Task Tracking part of the app, add an empty controller to `Controllers` called TasksController.  Copy the implementation from the sample.  You'll see that this controller reads tasks from and writes tasks to the underlying database.  It uses both the `[Authorize]` attribute and the `IsInRole()` method to ensure that the user attempting to read and write tasks has been granted the necessary privilges.
+2. Add the view for the Tasks page, by creating an empty view in the `Views\Tasks` folder called Index.  Copy its implementation from the sample.  You can see that this view uses the `IsInRole()` method extensively to enforce RBAC, ensuring that only the correct users can see the UI for manipulating tasks.
+
+#### Create the Role Management Page
+
+1. Now its time to tackle assigning and granting roles to users.  First, create a new empty controller called `RolesController` and copy in the implementation.  You'll see that the `RolesController` has actions for reading role mappings from the database, assigning a new role, and removing existing roles.
+2. Create the corresponding `Index` view in `Views\Roles` by copying its implementation from the sample. 
+
+#### Do a Little Housekeeping
+
+1. Before examining how each of these pieces comes together to enforce RBAC, a few other items need to be included in the project.  First, replace the implementation of the `App_Start\BundleConfig.cs` file with that from the sample.
+2. Similarly, replace the `Content\Site.css` file with that of the sample.
+3. Create a new empty controller called `ErrorController`, and a view in `Views\Error` called `ShowError.cshtml`.  Copy both of their implementations from the sample - they are simply used for displaying various error messages throughout the application.
+4. Replace the `Controllers\HomeController.cs` and `Views\Home\About.cshtml` files with the sample code.  The About page has been adjusted to provide information about the currently signed-in user.  Feel free to delete the `Views\Home\Contact.cshtml` file.
+5. Add a new javascript file to `Scripts` called `AadPickerLibrary.js`, and copy the code from the same file in the sample.  This file is a small js library that is used to select users and groups from a tenant in AAD.  In this app, it is used to select users and groups for assignment to roles in the role management page.
+6. Add a new class to the root directory of your project called `AuthorizeAttribute.cs`, and copy its implementation as well.  This class helps the MVC framework differentiate between a request that is Forbidden (user is authenticated, but has not been granted access rights) and Unauthorized (user is not authenticated), ensuring proper app behavior on redirects.
+7. Lastly, you need to provide the application with some specifics about your app's registration in the Azure Management Portal.  Create a class in `Utils` called `Globals.cs`, and copy in the code from the sample.  This class pulls in various values from the `web.config` file that are needed for signing the user in, acquiring access tokens, calling the AAD Graph API, and so on.  In `web.config`, in the `<appSettings>` tag, create keys for `ida:ClientId`, `ida:AppKey`, `ida:AADInstance`, `ida:Tenant`, `ida:PostLogoutRedirectUri`, `ida:GraphApiVersion` and `ida:GraphUrl` and set the values accordingly.  For the public Azure AD, the value of `ida:AADInstance` is `https://login.windows.net/{0}`, the value of `ida:GraphApiVersion` is `1.22-preview`, and the value of `ida:GraphUrl` is `https://graph.windows.net`.
+8. Finally, do a global search for `WebAppRBACDotNet` and replace it with the namespace of your application.  This will ensure that your classes do not contain the namespace of the sample app.
+
+#### Run the RBAC App
+
+Build the solution and run the app! Be sure you've followed the above steps on how to run the app in order to make sure your app is configured correctly in the Azure Management Portal.
+
+#### How Does It All Work?
+
+Beyond copying and pasting code, how does this app implement RBAC?  It begins with a role assignment.  As you saw in creating the app, assigning a role to a user a group via `RolesController.cs` creates a `RoleMapping.cs` object with a the user or group's ObjectId and the role they've been assigned.  
+
+When a user logs into the app, the `AuthorizationCodeRecieved` callback in `Startup.Auth.cs` is fired.  This callback first aquires an access token from AAD for calling the AAD Graph API, using the Active Directory Authentication Library (ADAL).  ADAL automatically caches the access token for you, using the cache implementation you provided in `TokenDbCache.cs`.  In other parts of the application, when the app needs to call the Graph API for information about users and groups, ADAL is also used to automatically fetch the access token from the cache, or request a new access token if the cached one is expired.
+
+The `AuthorizationCodeReceived` callback then queries the Graph API using the access token it just acquired.  It retrieves a list of AAD Security Groups that the signed-in user is a member of.
+
+It then queries the underlying database for any existing `RoleMapping` objects that contain either the ObjectId of the user or the ObjectId of one of the user's groups.  As it finds matching `RoleMapping` objects, it adds corresponding Role Claims to the `ClaimsIdentity` of the user.
+
+As one last step, the callback queries the GraphAPI once more to retreive the list of 'Application Owners' from AAD.  It grants any users that are Application Owners the role of Admin, so that when you first run the app, at least one user has Admin access and can begin granting access to other users.
+
+When `AuthorizationCodeReceieved` returns, the OWIN middleware eventually redirects the user to a page within the app.  Each page within the application, as you saw in creating the app, enforces RBAC by using the `[Authorize]` attribute or the `IsInRole()` method.  Both check for the existence of a corresponding Role Claim in the user's `ClaimsIdentity`.
+
+By granting the correct role claims to the user on sign-in, the application can strictly enforce RBAC and ease access management using AAD Security Groups and application-specific roles.
 
 ## Deploy this Sample to Azure
 
