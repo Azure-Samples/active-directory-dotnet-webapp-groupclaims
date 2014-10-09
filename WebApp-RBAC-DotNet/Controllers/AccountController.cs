@@ -38,7 +38,7 @@ namespace WebAppRBACDotNet.Controllers
             {
                 string userObjectID =
                 ClaimsPrincipal.Current.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier").Value;
-                var authContext = new AuthenticationContext(Startup.Authority, new TokenDbCache(userObjectID));
+                var authContext = new AuthenticationContext(Globals.Authority, new TokenDbCache(userObjectID));
                 authContext.TokenCache.Clear();
 
                 HttpContext.GetOwinContext().Authentication.SignOut(

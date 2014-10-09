@@ -12,6 +12,7 @@ using Microsoft.Owin.Security.OpenIdConnect;
 //The following libraries were defined and added to this sample.
 using WebAppRBACDotNet.Models;
 using WebAppRBACDotNet.Utils;
+using System.Net;
 
 namespace WebAppRBACDotNet.Controllers
 {
@@ -37,6 +38,7 @@ namespace WebAppRBACDotNet.Controllers
         {
             var myroles = new List<String>();
             var mygroups = new List<String>();
+            AuthenticationContext authContext;
 
             // Check if the user has been granted each application role.
             foreach (string str in Globals.Roles)
@@ -53,31 +55,35 @@ namespace WebAppRBACDotNet.Controllers
             try
             {
                 string userObjectId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
-                var authContext = new AuthenticationContext(Startup.Authority,
+                authContext = new AuthenticationContext(Globals.Authority,
                     new TokenDbCache(userObjectId));
                 var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
                 result = authContext.AcquireTokenSilent(Globals.GraphResourceId, credential,
                     new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
             }
-            catch (Exception e)
+            catch (AdalException e)
             {
                 // If the user doesn't have an access token, they need to re-authorize
-
-                // If refresh is set to true, the user has clicked the link to be authorized again.
-                if (Request.QueryString["reauth"] == "True")
+                if (e.ErrorCode == "failed_to_acquire_token_silently")
                 {
-                    
-                    // Send an OpenID Connect sign-in request to get a new set of tokens.
-                    // If the user still has a valid session with Azure AD, they will not be prompted for their credentials.
-                    // The OpenID Connect middleware will return to this controller after the sign-in response has been handled.
-                    
-                    HttpContext.GetOwinContext()
-                        .Authentication.Challenge(OpenIdConnectAuthenticationDefaults.AuthenticationType);
+                    // If refresh is set to true, the user has clicked the link to be authorized again.
+                    if (Request.QueryString["reauth"] == "True")
+                    {
+
+                        // Send an OpenID Connect sign-in request to get a new set of tokens.
+                        // If the user still has a valid session with Azure AD, they will not be prompted for their credentials.
+                        // The OpenID Connect middleware will return to this controller after the sign-in response has been handled.
+
+                        HttpContext.GetOwinContext()
+                            .Authentication.Challenge(OpenIdConnectAuthenticationDefaults.AuthenticationType);
+                    }
+
+                    // The user needs to re-authorize.  Show them a message to that effect.
+                    ViewBag.ErrorMessage = "AuthorizationRequired";
+                    return View();
                 }
 
-                // The user needs to re-authorize.  Show them a message to that effect.
-                ViewBag.ErrorMessage = "AuthorizationRequired";
-                return View();
+                return RedirectToAction("Show Error", "Error", new { errorMessage = "Error while acquiring token." });
             }
 
             // Setup Graph Connection
@@ -86,18 +92,33 @@ namespace WebAppRBACDotNet.Controllers
             graphSettings.ApiVersion = Globals.GraphApiVersion;
             var graphConnection = new GraphConnection(result.AccessToken, clientRequestId, graphSettings);
 
-            // For each Group Claim, we need to get the DisplayName of the Group from the GraphAPI
-            // We choose to iterate over the set of all groups rather than query the GraphAPI for each group.
-            // First, put all <GroupObjectID, DisplayName> pairs into a dictionary
             Dictionary<string, string> groupNameDict = new Dictionary<string, string>();
-            PagedResults<Group> pagedResults = graphConnection.List<Group>(null, null);
-            foreach (Group group in pagedResults.Results)
-                groupNameDict[group.ObjectId] = group.DisplayName;
-            while (!pagedResults.IsLastPage)
-            {
-                pagedResults = graphConnection.List<Group>(pagedResults.PageToken, null);
+
+            try { 
+                // For each Group Claim, we need to get the DisplayName of the Group from the GraphAPI
+                // We choose to iterate over the set of all groups rather than query the GraphAPI for each group.
+                // First, put all <GroupObjectID, DisplayName> pairs into a dictionary
+
+                PagedResults<Group> pagedResults = graphConnection.List<Group>(null, null);
                 foreach (Group group in pagedResults.Results)
                     groupNameDict[group.ObjectId] = group.DisplayName;
+                while (!pagedResults.IsLastPage)
+                {
+                    pagedResults = graphConnection.List<Group>(pagedResults.PageToken, null);
+                    foreach (Group group in pagedResults.Results)
+                        groupNameDict[group.ObjectId] = group.DisplayName;
+                }
+            }
+            catch (GraphException e) {
+
+                if (e.HttpStatusCode == HttpStatusCode.Unauthorized) {
+                    // The user needs to re-authorize.  Show them a message to that effect.
+                    authContext.TokenCache.Clear();
+                    ViewBag.ErrorMessage = "AuthorizationRequired";
+                    return View();
+                }
+
+                return RedirectToAction("Show Error", "Error", new { errorMessage = "Error while calling Graph API." });
             }
 
             // For the security groups the user is a member of, get the DisplayName

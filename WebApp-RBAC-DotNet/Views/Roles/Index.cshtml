@@ -111,5 +111,5 @@
 
 @if (ViewBag.ErrorMessage == "AuthorizationRequired")
 {
-    <p>You have to sign-in to see Roles. Click @Html.ActionLink("here", "Index", "Roles", new { reauth = true }, null) to sign-in.</p>
+    <p>You might need to re-authenticate to see Roles. Click @Html.ActionLink("here", "Index", "Roles", new { reauth = true }, null) to re-authenticate.</p>
 }

@@ -18,6 +18,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using System.Net;
 
 
 namespace WebAppRBACDotNet.Controllers
@@ -45,41 +46,62 @@ namespace WebAppRBACDotNet.Controllers
             var nameDict = new Dictionary<string, string>();
 
             //Get the Access Token for Calling Graph API
+            AuthenticationContext authContext;
             AuthenticationResult result = null;
             try
             {
                 string userObjectId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
-                var authContext = new AuthenticationContext(Startup.Authority,
+                authContext = new AuthenticationContext(Globals.Authority,
                     new TokenDbCache(userObjectId));
                 var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
                 result = authContext.AcquireTokenSilent(Globals.GraphResourceId, credential,
                     new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
             }
-            catch (Exception e)
+            catch (AdalException e)
             {
                 // If the user doesn't have an access token, they need to re-authorize
-
-                // If refresh is set to true, the user has clicked the link to be authorized again.
-                if (Request.QueryString["reauth"] == "True")
+                if (e.ErrorCode == "failed_to_acquire_token_silently")
                 {
+                    // If refresh is set to true, the user has clicked the link to be authorized again.
+                    if (Request.QueryString["reauth"] == "True")
+                    {
 
-                    // Send an OpenID Connect sign-in request to get a new set of tokens.
-                    // If the user still has a valid session with Azure AD, they will not be prompted for their credentials.
-                    // The OpenID Connect middleware will return to this controller after the sign-in response has been handled.
+                        // Send an OpenID Connect sign-in request to get a new set of tokens.
+                        // If the user still has a valid session with Azure AD, they will not be prompted for their credentials.
+                        // The OpenID Connect middleware will return to this controller after the sign-in response has been handled.
 
-                    HttpContext.GetOwinContext()
-                        .Authentication.Challenge(OpenIdConnectAuthenticationDefaults.AuthenticationType);
+                        HttpContext.GetOwinContext()
+                            .Authentication.Challenge(OpenIdConnectAuthenticationDefaults.AuthenticationType);
+                    }
+
+                    // The user needs to re-authorize.  Show them a message to that effect.
+                    ViewBag.ErrorMessage = "AuthorizationRequired";
+                    return View();
                 }
 
-                // The user needs to re-authorize.  Show them a message to that effect.
-                ViewBag.ErrorMessage = "AuthorizationRequired";
-                return View();
+                return RedirectToAction("Show Error", "Error", new { errorMessage = "Error while acquiring token." });
             }
 
             // Construct the <ObjectID, DisplayName> Dictionary, Add Lists of Mappings to ViewData
             // for each type of role
             foreach (RoleMapping mapping in mappings)
-                nameDict[mapping.ObjectId] = GetDisplayNameFromObjectId(result.AccessToken, mapping.ObjectId);
+            {
+                try
+                {
+                    nameDict[mapping.ObjectId] = GetDisplayNameFromObjectId(result.AccessToken, mapping.ObjectId);
+                }
+                catch (GraphException e)
+                {
+                    if (e.HttpStatusCode == HttpStatusCode.Unauthorized)
+                    {
+                        // The user needs to re-authorize.  Show them a message to that effect.
+                        authContext.TokenCache.Clear();
+                        ViewBag.ErrorMessage = "AuthorizationRequired";
+                        return View();
+                    }
+                    return RedirectToAction("Show Error", "Error", new { errorMessage = "Error while calling Graph API." });
+                }
+            }
             
             ViewData["mappings"] = mappings;
             ViewData["nameDict"] = nameDict;
@@ -110,16 +132,16 @@ namespace WebAppRBACDotNet.Controllers
                 try
                 {
                     string userObjectId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
-                    var authContext = new AuthenticationContext(Startup.Authority,
+                    var authContext = new AuthenticationContext(Globals.Authority,
                         new TokenDbCache(userObjectId));
                     var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
                     result = authContext.AcquireTokenSilent(Globals.GraphResourceId, credential,
                         new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
                 }
-                catch (Exception e)
+                catch (AdalException e)
                 {
-                    // The user needs to re-authorize.  Show them a message to that effect.
-                    return RedirectToAction("Index", "Roles", null);
+                        // The user needs to re-authorize.  Show them a message to that effect.
+                        return RedirectToAction("Index", "Roles", null);  
                 }
 
                 DbAccess.AddRoleMapping(formCollection["id"], formCollection["role"]);
@@ -203,26 +225,38 @@ namespace WebAppRBACDotNet.Controllers
                 // Get a User by ObjectID
                 return graphConnection.Get<User>(objectId).DisplayName;
             }
-            catch
+            catch (GraphException e)
             {
-                try
-                {
-                    // If the User with ObjectID DNE, Get a group with the ObjectID
-                    return graphConnection.Get<Group>(objectId).DisplayName;
-                }
-                catch
+                if (e.HttpStatusCode == HttpStatusCode.NotFound)
                 {
                     try
                     {
-                        // If the User and Group with ObjectID, Get a Built-In Directory Role
-                        return graphConnection.Get<Role>(objectId).DisplayName;
+                        // If the User with ObjectID DNE, Get a group with the ObjectID
+                        return graphConnection.Get<Group>(objectId).DisplayName;
                     }
-                    catch
+                    catch (GraphException eprime)
                     {
-                        // If neither a User nor a Group nor a Role was found, return null
-                        return null;
+                        if (eprime.HttpStatusCode == HttpStatusCode.NotFound)
+                        {
+                            try
+                            {
+                                // If the User and Group with ObjectID, Get a Built-In Directory Role
+                                return graphConnection.Get<Role>(objectId).DisplayName;
+                            }
+                            catch (GraphException eprimeprime)
+                            {
+                                if (eprimeprime.HttpStatusCode == HttpStatusCode.NotFound)
+                                {
+                                    // If neither a User nor a Group nor a Role was found, return null
+                                    return null;
+                                }
+                                else { throw eprimeprime; }
+                            }
+                        }
+                        else { throw eprime; }
                     }
                 }
+                else { throw e; }
             }
         }
         #endregion

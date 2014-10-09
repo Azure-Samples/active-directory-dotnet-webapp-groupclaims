@@ -32,21 +32,6 @@ namespace WebAppRBACDotNet
 {
     public partial class Startup
     {
-        // The Client ID is used by the application to uniquely identify itself to Azure AD.
-        // The App Key is a credential used to authenticate the application to Azure AD.  Azure AD supports password and certificate credentials.
-        // The AAD Instance is the instance of Azure, for example public Azure or Azure China.
-        // The Post Logout Redirect Uri is the URL where the user will be redirected after they sign out.
-        // The Authority is the sign-in URL of the tenant.
-        // The GraphResourceId the resource ID of the AAD Graph API.  We'll need this to request a token to call the Graph API.
-      
-        private static readonly string clientId = ConfigurationManager.AppSettings["ida:ClientId"];
-        private static readonly string appKey = ConfigurationManager.AppSettings["ida:AppKey"];
-        private static readonly string aadInstance = Globals.AadInstance;
-        public static readonly string tenant = Globals.Tenant;
-        private static readonly string postLogoutRedirectUri = ConfigurationManager.AppSettings["ida:PostLogoutRedirectUri"];
-        public static readonly string Authority = Globals.Authority;
-        private static string graphResourceId = "https://graph.windows.net";
-
         /// <summary>
         /// Configures OpenIDConnect Authentication & Adds Custom Application Authorization Logic on User Login.
         /// </summary>
@@ -61,29 +46,44 @@ namespace WebAppRBACDotNet
             app.UseOpenIdConnectAuthentication(
                 new OpenIdConnectAuthenticationOptions
                 {
-                    ClientId = clientId,
-                    Authority = Authority,
-                    PostLogoutRedirectUri = postLogoutRedirectUri,
+                    ClientId = Globals.ClientId,
+                    Authority = Globals.Authority,
+                    PostLogoutRedirectUri = Globals.PostLogoutRedirectUri,
                     Notifications = new OpenIdConnectAuthenticationNotifications
                     {
                         // Redeem an Authorization Code recieved in an OpenIDConnect message for an Access Token & Refresh Token, and store them away.
-                        AuthorizationCodeReceived = async context =>
+                        AuthorizationCodeReceived = context =>
                         {
-                            ClaimsIdentity claimsId = context.AuthenticationTicket.Identity;
-                            ClientCredential credential = new ClientCredential(clientId, appKey);
-                            string userObjectId = claimsId.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier").Value;
-                            var authContext = new AuthenticationContext(Authority, new TokenDbCache(userObjectId));
-                            AuthenticationResult result = authContext.AcquireTokenByAuthorizationCode(
-                                context.Code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential, graphResourceId);
+                            try
+                            {
+                                ClaimsIdentity claimsId = context.AuthenticationTicket.Identity;
+                                ClientCredential credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
+                                string userObjectId = claimsId.FindFirst(Globals.ObjectIdClaimType).Value;
+                                AuthenticationContext authContext = new AuthenticationContext(Globals.Authority, new TokenDbCache(userObjectId));
+                                AuthenticationResult result = authContext.AcquireTokenByAuthorizationCode(
+                                    context.Code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential, Globals.GraphResourceId);
 
-                            // Get the list of groups the user is a member of, and assign roles accordingly.
-                            List<String> groupMemberships = await GetGroupsFromGraphAPI(result.AccessToken, claimsId, userObjectId);
-                            AssignRoles(userObjectId, groupMemberships, claimsId);
+                                // Get the list of groups the user is a member of, and assign roles accordingly.
+                                List<String> groupMemberships = GetGroupsFromGraphAPI(result.AccessToken, claimsId, userObjectId);
+                                AssignRoles(userObjectId, groupMemberships, claimsId);
 
-                            // Assign Admin priviliges to the AAD Application Owners, to bootstrap the application on first run.
-                            AddOwnerMappings(userObjectId, result.AccessToken, claimsId);
+                                // Assign Admin priviliges to the AAD Application Owners, to bootstrap the application on first run.
+                                AddOwnerMappings(userObjectId, result.AccessToken, claimsId);
 
-                            return;
+                                return System.Threading.Tasks.Task.FromResult(0);
+                            }
+                            catch (AdalException e)
+                            {
+                                context.HandleResponse();
+                                context.Response.Redirect("/Error/ShowError?errorMessage=Were having trouble signing you in&signIn=true");
+                                return System.Threading.Tasks.Task.FromResult(0);
+                            }
+                            catch (GraphException e)
+                            {
+                                context.HandleResponse();
+                                context.Response.Redirect("/Error/ShowError?errorMessage=Were having trouble signing you in&signIn=true");
+                                return System.Threading.Tasks.Task.FromResult(0);
+                            }
                         }
                     }
                 });
@@ -122,36 +122,29 @@ namespace WebAppRBACDotNet
         /// <param name="claimsIdentity">The <see cref="ClaimsIdenity" /> object that represents the 
         /// claims-based identity of the currently signed in user and contains thier claims.</param>
         /// <returns>A list of ObjectIDs representing the groups that the user is a member of.</returns>
-        private async Task<List<String>> GetGroupsFromGraphAPI(string accessToken, ClaimsIdentity claimsIdentity, string userObjectId)
+        private List<String> GetGroupsFromGraphAPI(string accessToken, ClaimsIdentity claimsIdentity, string userObjectId)
         {
             var pagedResults = new PagedResults<GraphObject>();
             var builtInRolesAndGroups = new List<GraphObject>();
             var listOfGroupObjectIDs = new List<String>();
 
-            try
+            // Setup Graph API connection
+            Guid ClientRequestId = Guid.NewGuid();
+            var graphSettings = new GraphSettings();
+            graphSettings.ApiVersion = Globals.GraphApiVersion;
+            var graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
+
+            // Query the Graph API to get a User by ObjectID and subsequently 
+            // the Groups & Built-In Roles that the user is assinged to.
+            var user = graphConnection.Get<User>(userObjectId);
+            pagedResults = graphConnection.GetLinkedObjects(user, LinkProperty.MemberOf, null);
+
+            // Add All Objects (Both Built-In Directory Roles and Groups) returened by the GraphAPI.
+            builtInRolesAndGroups.AddRange(pagedResults.Results);
+            while (!pagedResults.IsLastPage)
             {
-                // Setup Graph API connection
-                Guid ClientRequestId = Guid.NewGuid();
-                var graphSettings = new GraphSettings();
-                graphSettings.ApiVersion = Globals.GraphApiVersion;
-                var graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
-
-                // Query the Graph API to get a User by ObjectID and subsequently 
-                // the Groups & Built-In Roles that the user is assinged to.
-                var user = graphConnection.Get<User>(userObjectId);
-                pagedResults = graphConnection.GetLinkedObjects(user, LinkProperty.MemberOf, null);
-
-                // Add All Objects (Both Built-In Directory Roles and Groups) returened by the GraphAPI.
+                pagedResults = graphConnection.GetLinkedObjects(user, LinkProperty.MemberOf, pagedResults.PageToken);
                 builtInRolesAndGroups.AddRange(pagedResults.Results);
-                while (!pagedResults.IsLastPage)
-                {
-                    pagedResults = graphConnection.GetLinkedObjects(user, LinkProperty.MemberOf, pagedResults.PageToken);
-                    builtInRolesAndGroups.AddRange(pagedResults.Results);
-                }
-            }
-            catch (Exception e)
-            {
-                //Ignore user not found exception, simply don't add groups
             }
 
             // For each object returned by the GraphAPI
@@ -183,35 +176,28 @@ namespace WebAppRBACDotNet
             graphSettings.ApiVersion = Globals.GraphApiVersion;
             var graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
 
-            try
-            {
-                FilterGenerator filter = new FilterGenerator();
-                filter.QueryFilter = ExpressionHelper.CreateConditionalExpression(typeof(Application),
-                    GraphProperty.AppId, new Guid(clientId), ExpressionType.Equal);
-                PagedResults<Application> pagedApp = graphConnection.List<Application>(null, filter);
+            FilterGenerator filter = new FilterGenerator();
+            filter.QueryFilter = ExpressionHelper.CreateConditionalExpression(typeof(Application),
+                GraphProperty.AppId, new Guid(Globals.ClientId), ExpressionType.Equal);
+            PagedResults<Application> pagedApp = graphConnection.List<Application>(null, filter);
 
-                PagedResults<GraphObject> owners = graphConnection.GetLinkedObjects(pagedApp.Results[0],
-                    LinkProperty.Owners, null);
+            PagedResults<GraphObject> owners = graphConnection.GetLinkedObjects(pagedApp.Results[0],
+                LinkProperty.Owners, null);
+            foreach (var owner in owners.Results)
+            {
+                DbAccess.AddRoleMapping(owner.ObjectId, "Owner");
+                if (owner.ObjectId == userObjectId)
+                    claimsId.AddClaim(new Claim(ClaimTypes.Role, "Admin", ClaimValueTypes.String, "RBAC-Sample-ADALv2-App"));
+            }
+            while (!owners.IsLastPage)
+            {
+                owners = graphConnection.GetLinkedObjects(pagedApp.Results[0], LinkProperty.Owners, owners.PageToken);
                 foreach (var owner in owners.Results)
                 {
                     DbAccess.AddRoleMapping(owner.ObjectId, "Owner");
                     if (owner.ObjectId == userObjectId)
                         claimsId.AddClaim(new Claim(ClaimTypes.Role, "Admin", ClaimValueTypes.String, "RBAC-Sample-ADALv2-App"));
                 }
-                while (!owners.IsLastPage)
-                {
-                    owners = graphConnection.GetLinkedObjects(pagedApp.Results[0], LinkProperty.Owners, owners.PageToken);
-                    foreach (var owner in owners.Results)
-                    {
-                        DbAccess.AddRoleMapping(owner.ObjectId, "Owner");
-                        if (owner.ObjectId == userObjectId)
-                            claimsId.AddClaim(new Claim(ClaimTypes.Role, "Admin", ClaimValueTypes.String, "RBAC-Sample-ADALv2-App"));
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                // Graph Error, Ignore and do not grant admin access
             }
         }
         #endregion

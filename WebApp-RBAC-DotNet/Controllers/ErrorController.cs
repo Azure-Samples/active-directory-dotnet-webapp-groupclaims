@@ -9,9 +9,10 @@ namespace WebAppRBACDotNet.Controllers
         ///     illegal actions.
         /// </summary>
         /// <returns>Generic error <see cref="View" />.</returns>
-        public ActionResult ShowError()
+        public ActionResult ShowError(string errorMessage, string signIn)
         {
-            ViewBag.ErrorMessage = Request.QueryString["errorMessage"];
+            ViewBag.SignIn = signIn;
+            ViewBag.ErrorMessage = errorMessage;
             return View();
         }
     }
