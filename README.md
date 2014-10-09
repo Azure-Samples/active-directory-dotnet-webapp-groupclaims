@@ -8,7 +8,7 @@ For more information about how the protocols work in this scenario and other sce
 ##About The Sample
 If you would like to get started immediately, skip this section and jump to *How To Run The Sample*. 
 
-This MVC 5 web application is a simple "Task Tracker" application that allows users to create, read, update, and delete tasks.  Within the application, access to certain functionalities is restricted to different subsets of users. For instance, not every user has the ability to create a task.
+This MVC 5 web application is a simple "Task Tracker" application that allows users to create, read, update, and delete tasks.  Within the application, access to certain functionality is restricted to different subsets of users. For instance, not every user has the ability to create a task.
 
 This kind of access control or authorization is implemented using role based access control (RBAC).  When using RBAC, an administrator grants permissions to roles, not to individual users. The administrator can then assign roles to different users and control who has access to what content and functionality.  Our Task Tracker application defines four *Application Roles*:
 - Admin: Has the ability to perform all actions, as well as manage the Application Roles of other users.
@@ -76,12 +76,26 @@ If you already have a user account with Global Administrator rights in your Azur
 
 Clean the solution, rebuild the solution, and run it.  Explore the sample by signing in, navigating to different pages, adding tasks, signing out, etc.  Create several user accounts in the Azure Management Portal, and assign them different roles using the application owner account you created.  Create a Security Group in the Azure Management Portal, add users to it, and again add roles to it using an Admin account.  Explore the differences between each role throughout the application, namely the Tasks and Roles pages.
 
+## Deploy this Sample to Azure
+
+To deploy this application to Azure, you will publish it to an Azure Website.
+
+1. Sign in to the [Azure management portal](https://manage.windowsazure.com).
+2. Click on Web Sites in the left hand nav.
+3. Click New in the bottom left hand corner, select Compute --> Web Site --> Quick Create, select the hosting plan and region, and give your web site a name, e.g. tasktracker-contoso.azurewebsites.net.  Click Create Web Site.
+4. Once the web site is created, click on it to manage it.  For the purposes of this sample, download the publish profile from Quick Start or from the Dashboard and save it.  Other deployment mechanisms, such as from source control, can also be used.
+5. While still in the Azure management portal, navigate back to the Azure AD tenant you used in creating this sample.  Under applications, select your Task Tracker application.  Under configure, update the Sign-On URL and Reply URL fields to the root address of your published application, for example https://tasktracker-contoso.azurewebsites.net/.  Click Save.
+5. Switch to Visual Studio and go to the WebApp-RBAC-DotNet project.  In the web.config file, update the "PostLogoutRedirectUri" value to the root address of your published appliction as well.
+6. Right click on the project in the Solution Explorer and select Publish.  Under Profile, click Import, and import the publish profile that you just downloaded.
+6. On the Connection tab, update the Destination URL so that it is https, for example https://tasktracker-contoso.azurewebsites.net.  Click Next.
+7. On the Settings tab, make sure Enable Organizational Authentication is NOT selected.  Click Publish.
+8. Visual Studio will publish the project and automatically open a browser to the URL of the project.  If you see the default web page of the project, the publication was successful.
 
 ## Code Walk-Through
 
 This section will help you understand the important sections of the sample and how to create the sample from scratch.
 
-### Get Started
+#### Get Started
 
 1. Open up Visual Studio 2013, and create a new ASP.NET Web Application.  In the New Project dialog, select MVC, and Change Authentication to "No Authentication." Click OK to create your project.
 2. In the project properties, Set SSL Enabled to be True.  Note the SSL URL.
@@ -120,13 +134,13 @@ This section will help you understand the important sections of the sample and h
 3. Create a new empty controller called `ErrorController`, and a view in `Views\Error` called `ShowError.cshtml`.  Copy both of their implementations from the sample - they are simply used for displaying various error messages throughout the application.
 4. Replace the `Controllers\HomeController.cs` and `Views\Home\About.cshtml` files with the sample code.  The About page has been adjusted to provide information about the currently signed-in user.  Feel free to delete the `Views\Home\Contact.cshtml` file.
 5. Add a new javascript file to `Scripts` called `AadPickerLibrary.js`, and copy the code from the same file in the sample.  This file is a small js library that is used to select users and groups from a tenant in AAD.  In this app, it is used to select users and groups for assignment to roles in the role management page.
-6. Add a new class to the root directory of your project called `AuthorizeAttribute.cs`, and copy its implementation as well.  This class helps the MVC framework differentiate between a request that is Forbidden (user is authenticated, but has not been granted access rights) and Unauthorized (user is not authenticated), ensuring proper app behavior on redirects.
+6. Add a new class to the root directory of your project called `AuthorizeAttribute.cs`, and copy its implementation as well.  This class helps the MVC framework differentiate between a request that is Forbidden (user is authenticated, but has not been granted access) and Unauthorized (user is not authenticated), ensuring proper app behavior on page redirects.
 7. Lastly, you need to provide the application with some specifics about your app's registration in the Azure Management Portal.  Create a class in `Utils` called `Globals.cs`, and copy in the code from the sample.  This class pulls in various values from the `web.config` file that are needed for signing the user in, acquiring access tokens, calling the AAD Graph API, and so on.  In `web.config`, in the `<appSettings>` tag, create keys for `ida:ClientId`, `ida:AppKey`, `ida:AADInstance`, `ida:Tenant`, `ida:PostLogoutRedirectUri`, `ida:GraphApiVersion` and `ida:GraphUrl` and set the values accordingly.  For the public Azure AD, the value of `ida:AADInstance` is `https://login.windows.net/{0}`, the value of `ida:GraphApiVersion` is `1.22-preview`, and the value of `ida:GraphUrl` is `https://graph.windows.net`.
 8. Finally, do a global search for `WebAppRBACDotNet` and replace it with the namespace of your application.  This will ensure that your classes do not contain the namespace of the sample app.
 
 #### Run the RBAC App
 
-Build the solution and run the app! Be sure you've followed the above steps on how to run the app in order to make sure your app is configured correctly in the Azure Management Portal.
+Build the solution and run the app! Be sure you've followed the above steps in 'How To Run The Sample' in order to make sure your app is configured correctly in the Azure Management Portal.
 
 #### How Does It All Work?
 
@@ -143,18 +157,3 @@ As one last step, the callback queries the GraphAPI once more to retreive the li
 When `AuthorizationCodeReceieved` returns, the OWIN middleware eventually redirects the user to a page within the app.  Each page within the application, as you saw in creating the app, enforces RBAC by using the `[Authorize]` attribute or the `IsInRole()` method.  Both check for the existence of a corresponding Role Claim in the user's `ClaimsIdentity`.
 
 By granting the correct role claims to the user on sign-in, the application can strictly enforce RBAC and ease access management using AAD Security Groups and application-specific roles.
-
-## Deploy this Sample to Azure
-
-To deploy this application to Azure, you will publish it to an Azure Website.
-
-1. Sign in to the [Azure management portal](https://manage.windowsazure.com).
-2. Click on Web Sites in the left hand nav.
-3. Click New in the bottom left hand corner, select Compute --> Web Site --> Quick Create, select the hosting plan and region, and give your web site a name, e.g. tasktracker-contoso.azurewebsites.net.  Click Create Web Site.
-4. Once the web site is created, click on it to manage it.  For the purposes of this sample, download the publish profile from Quick Start or from the Dashboard and save it.  Other deployment mechanisms, such as from source control, can also be used.
-5. While still in the Azure management portal, navigate back to the Azure AD tenant you used in creating this sample.  Under applications, select your Task Tracker application.  Under configure, update the Sign-On URL and Reply URL fields to the root address of your published application, for example https://tasktracker-contoso.azurewebsites.net/.  Click Save.
-5. Switch to Visual Studio and go to the WebApp-RBAC-DotNet project.  In the web.config file, update the "PostLogoutRedirectUri" value to the root address of your published appliction as well.
-6. Right click on the project in the Solution Explorer and select Publish.  Under Profile, click Import, and import the publish profile that you just downloaded.
-6. On the Connection tab, update the Destination URL so that it is https, for example https://tasktracker-contoso.azurewebsites.net.  Click Next.
-7. On the Settings tab, make sure Enable Organizational Authentication is NOT selected.  Click Publish.
-8. Visual Studio will publish the project and automatically open a browser to the URL of the project.  If you see the default web page of the project, the publication was successful.
