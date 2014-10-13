@@ -1,0 +1,60 @@
+﻿@{
+    ViewBag.Title = "Tasks";
+}
+
+<h2>Tasks</h2>
+
+@if (User.Identity.IsAuthenticated)
+{
+    using (Html.BeginForm("TaskSubmit", "Tasks", FormMethod.Post))
+    {
+        <table>
+            <tr>
+                <th>Task</th>
+                <th>Status</th>
+            </tr>
+
+            @foreach (WebAppGroupClaimsDotNet.Models.Task task in (List<WebAppGroupClaimsDotNet.Models.Task>)ViewData["tasks"])
+            {
+                <tr>
+                    <td>@task.TaskText</td>
+                    @if (User.IsInRole("Approver") || User.IsInRole("Admin"))
+                    {
+                        <td>
+                            <select name="@task.TaskID">
+                                @foreach (string status in WebAppGroupClaimsDotNet.Utils.Globals.Statuses)
+                                {
+                                    if (status == task.Status)
+                                    {
+                                        <option value="@status" selected>@status</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@status">@status</option>
+                                    }
+                                }
+                            </select>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>@task.Status</td>
+                    }
+                </tr>
+            }
+
+        </table>
+
+        if (User.IsInRole("Admin") || User.IsInRole("Writer"))
+        {
+            <p>Add New Task: <input type="text" name="newtask"></p>
+        }
+
+        if (User.IsInRole("Admin") || User.IsInRole("Writer") || User.IsInRole("Approver"))
+        {
+            <input type="submit" value="UpdateTasks" />
+        }
+
+    }
+}
+

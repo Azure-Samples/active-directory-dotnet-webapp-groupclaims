@@ -1,0 +1,115 @@
+﻿@{
+    ViewBag.Title = "Index";
+}
+
+@if (User.Identity.IsAuthenticated && (ViewBag.ErrorMessage == null || ViewBag.ErrorMessage != "AuthorizationRequired"))
+{
+    <h2>Assign User Roles</h2>
+
+    //Form to Assign a New Role
+    using (Html.BeginForm("AssignRole", "Roles", FormMethod.Post, new { id = "assign-form" }))
+    {
+        <div class="assign-role">
+            <p class="search-hint">Search for a User or Group:</p>
+            <p>
+                Select Role:
+                <select name="role">
+                    @foreach (String str in (List<String>)ViewData["roles"])
+                    {
+                        if (str != "Owner")
+                        {
+                            <option value="@str"> @str</option>
+                        }
+                    }
+                </select>
+            </p>
+
+            <input type="submit" id="submit-button" value="Assign Role" />
+        </div>
+        <div>
+            <input id="search" type="text" name="input">
+            <input id="hidden-input" type="hidden" name="id" />
+            <div class="aadpicker-search-results"></div> @*OPTIONAL!!!*@
+        </div>
+    
+        // People/Group Picker Code
+        <script>
+            var maxResultsPerPage = 14;
+            var searchUrl = window.location.protocol + "//" + window.location.host + "/Roles/Search";
+            var input = document.getElementById("search");
+            var token = "@ViewData["token"]";
+            var tenant = "@ViewData["tenant"]";
+
+            var picker = AadPicker(searchUrl, maxResultsPerPage, input, token, tenant);
+            
+            // Submit the selected user/group to be asssigned.
+            $("#submit-button").click({ picker: picker }, function () {
+                if (!picker.selected)
+                    return;
+                var form = $("#assign-form").get()[0].elements["id"].value = picker.selected.objectId;
+            });
+
+        </script>
+    }
+
+    //List out users in each role with checkboxes for removing roles
+    using (Html.BeginForm("RemoveRole", "Roles", FormMethod.Post))
+    {
+        //foreach app role
+        foreach (string str in (List<String>)ViewData["roles"])
+        {            
+            <h3>@str</h3>
+
+            <table class="table table-bordered table-striped">
+                <tr>
+                    <th>Name</th>
+                    <th>ObjectID</th>
+                    <th>Delete</th>
+
+                </tr>
+
+                @*for each mapping entry in that role*@
+                @foreach (WebAppGroupClaimsDotNet.Models.RoleMapping mapping in (List<WebAppGroupClaimsDotNet.Models.RoleMapping>)ViewData["mappings"])
+                {
+                    if (mapping.Role == str)
+                    { 
+                        <tr>
+                            <td>
+                                @if ((((Dictionary<string, string>)ViewData["nameDict"])[@mapping.ObjectId]) == null)
+                                {
+                                    <span style="color: red;">Object No Longer Exists in AAD</span>
+                                }
+                                else
+                                {
+                                    @(((Dictionary<string, string>)ViewData["nameDict"])[@mapping.ObjectId])
+                                }
+                            </td>
+                            <td>
+                                @mapping.ObjectId
+                            </td>
+                            <td>
+                                @if (mapping.Role == "Owner")
+                                {
+                                    <p>*You can only delete owners in Azure Portal.</p>
+                                }
+                                else 
+                                {
+                                    <input type="checkbox" name="@mapping.RoleMappingID" value="delete" />
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </table>
+            
+        }
+
+        <input type="submit" value="Remove Roles" />
+    }
+
+}
+
+@if (ViewBag.ErrorMessage == "AuthorizationRequired")
+{
+    <p>You might need to re-authenticate to see Roles. Click @Html.ActionLink("here", "Index", "Roles", new { reauth = true }, null) to re-authenticate.</p>
+}
