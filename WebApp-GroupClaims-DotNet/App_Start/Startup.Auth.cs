@@ -46,9 +46,9 @@ namespace WebAppGroupClaimsDotNet
             app.UseOpenIdConnectAuthentication(
                 new OpenIdConnectAuthenticationOptions
                 {
-                    ClientId = Globals.ClientId,
-                    Authority = Globals.Authority,
-                    PostLogoutRedirectUri = Globals.PostLogoutRedirectUri,
+                    ClientId = ConfigHelper.ClientId,
+                    Authority = ConfigHelper.Authority,
+                    PostLogoutRedirectUri = ConfigHelper.PostLogoutRedirectUri,
                     Notifications = new OpenIdConnectAuthenticationNotifications
                     {
                         // Redeem an Authorization Code recieved in an OpenIDConnect message for an Access Token & Refresh Token, and store them away.
@@ -57,18 +57,18 @@ namespace WebAppGroupClaimsDotNet
                             try
                             {
                                 ClaimsIdentity claimsId = context.AuthenticationTicket.Identity;
-                                ClientCredential credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
+                                ClientCredential credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
                                 string userObjectId = claimsId.FindFirst(Globals.ObjectIdClaimType).Value;
-                                AuthenticationContext authContext = new AuthenticationContext(Globals.Authority, new TokenDbCache(userObjectId));
+                                AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority, new TokenDbCache(userObjectId));
                                 AuthenticationResult result = authContext.AcquireTokenByAuthorizationCode(
-                                    context.Code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential, Globals.GraphResourceId);
+                                    context.Code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential, ConfigHelper.GraphResourceId);
 
                                 // Get the list of groups the user is a member of, and assign roles accordingly.
-                                List<String> groupMemberships = GetGroupsFromGraphAPI(result.AccessToken, claimsId, userObjectId);
+                                List<String> groupMemberships = GetGroupsFromGraphAPI(claimsId, userObjectId);
                                 AssignRoles(userObjectId, groupMemberships, claimsId);
 
                                 // Assign Admin priviliges to the AAD Application Owners, to bootstrap the application on first run.
-                                AddOwnerMappings(userObjectId, result.AccessToken, claimsId);
+                                AddOwnerAdminClaim(userObjectId, claimsId);
 
                                 return System.Threading.Tasks.Task.FromResult(0);
                             }
@@ -95,7 +95,7 @@ namespace WebAppGroupClaimsDotNet
         ////////////////////////////////////////////////////////////////////
         #region HelperFunctions
         /// <summary>
-        /// Assign the application roles (Owner, Admin, Writer, Approver, Observer) that the user has been granted,
+        /// Assign the application roles (Admin, Writer, Approver, Observer) that the user has been granted,
         /// based on our user and group mappings stored in the db.
         /// </summary>
         /// <param name="objectId"> The signed-in user's ObjectID.</param>
@@ -107,10 +107,7 @@ namespace WebAppGroupClaimsDotNet
             foreach (RoleMapping mapping in mappings)
             {
                 if (mapping.ObjectId.Equals(userObjectId) || (groupMemberships != null && groupMemberships.Contains(mapping.ObjectId)))
-                { 
-                    if (mapping.Role != "Owner")
-                        claimsId.AddClaim(new Claim(ClaimTypes.Role, mapping.Role, ClaimValueTypes.String, "WebAppGroupClaimsDotNet"));
-                }
+                    claimsId.AddClaim(new Claim(ClaimTypes.Role, mapping.Role, ClaimValueTypes.String, "WebAppGroupClaimsDotNet"));
             }
         }
 
@@ -118,74 +115,61 @@ namespace WebAppGroupClaimsDotNet
         /// We must query the GraphAPI to obtain information about the user and the security groups they are a member of.
         /// Here we use the GraphAPI Client Library to do so.
         /// </summary>
-        /// <param name="accessToken">The OpenIDConnect access token, used here for querying the GraphAPI.</param>
         /// <param name="claimsIdentity">The <see cref="ClaimsIdenity" /> object that represents the 
         /// claims-based identity of the currently signed in user and contains thier claims.</param>
         /// <returns>A list of ObjectIDs representing the groups that the user is a member of.</returns>
-        private List<String> GetGroupsFromGraphAPI(string accessToken, ClaimsIdentity claimsIdentity, string userObjectId)
+        private List<String> GetGroupsFromGraphAPI(ClaimsIdentity claimsIdentity, string userObjectId)
         {
-            var pagedResults = new PagedResults<GraphObject>();
-            var builtInRolesAndGroups = new List<GraphObject>();
-            var listOfGroupObjectIDs = new List<String>();
+            // Acquire the Access Token
+            ClientCredential credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
+            AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority, new TokenDbCache(userObjectId));
+            AuthenticationResult result = authContext.AcquireTokenSilent(ConfigHelper.GraphResourceId, credential,
+                new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
 
             // Setup Graph API connection
             Guid ClientRequestId = Guid.NewGuid();
             var graphSettings = new GraphSettings();
-            graphSettings.ApiVersion = Globals.GraphApiVersion;
-            var graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
+            graphSettings.ApiVersion = ConfigHelper.GraphApiVersion;
+            var graphConnection = new GraphConnection(result.AccessToken, ClientRequestId, graphSettings);
 
             // Query the Graph API to get a User by ObjectID and subsequently 
-            // the Groups & Built-In Roles that the user is assinged to.
+            // the Groups that the user is assinged to (transitive).
             var user = graphConnection.Get<User>(userObjectId);
-            pagedResults = graphConnection.GetLinkedObjects(user, LinkProperty.MemberOf, null);
-
-            // Add All Objects (Both Built-In Directory Roles and Groups) returened by the GraphAPI.
-            builtInRolesAndGroups.AddRange(pagedResults.Results);
-            while (!pagedResults.IsLastPage)
-            {
-                pagedResults = graphConnection.GetLinkedObjects(user, LinkProperty.MemberOf, pagedResults.PageToken);
-                builtInRolesAndGroups.AddRange(pagedResults.Results);
-            }
-
-            // For each object returned by the GraphAPI
-            foreach (GraphObject roleOrGroup in builtInRolesAndGroups)
-                listOfGroupObjectIDs.Add(roleOrGroup.ObjectId);
-
-            return listOfGroupObjectIDs;
+            return (List<String>)graphConnection.GetMemberGroups(user, false);
         }
 
 
         /// <summary>
         /// Checks to see if the signed-in user is an application owner. If so, assigns the user the application 
-        /// role "Owner" in the database and grants them "Admin" priviliges.  This is to ensure that
-        /// at least one user can login and assign application roles to other users the first time we run the app.
-        /// There are several other ways to accomplish this.
+        /// role "Admin."  This is to ensure that at least one user can login and assign application roles to 
+        /// other users the first time we run the app.
         /// </summary>
-        /// <param name="accessToken">The Access token, used here to query the GraphAPI.</param>
         /// <param name="claimsId">The <see cref="ClaimsIdenity" /> object that represents the 
         /// claims-based identity of the currently signed in user and contains thier claims.</param>
         /// <param name="userObjectId"> The ObjectId of the signed in user.</param>
-        private void AddOwnerMappings(string userObjectId, string accessToken, ClaimsIdentity claimsId)
+        private void AddOwnerAdminClaim(string userObjectId, ClaimsIdentity claimsId)
         {
-            // Every time a user signs in, we rewrite the list of owners in case owners have been removed in the Azure Portal.
-            DbAccess.RemoveExistingOwnerMappings();
-            
+            // Acquire the Access Token
+            ClientCredential credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
+            AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority, new TokenDbCache(userObjectId));
+            AuthenticationResult result = authContext.AcquireTokenSilent(ConfigHelper.GraphResourceId, credential,
+                new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
+
             // Setup Graph API connection
             Guid ClientRequestId = Guid.NewGuid();
             var graphSettings = new GraphSettings();
-            graphSettings.ApiVersion = Globals.GraphApiVersion;
-            var graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
+            graphSettings.ApiVersion = ConfigHelper.GraphApiVersion;
+            var graphConnection = new GraphConnection(result.AccessToken, ClientRequestId, graphSettings);
 
             FilterGenerator filter = new FilterGenerator();
             filter.QueryFilter = ExpressionHelper.CreateConditionalExpression(typeof(Application),
-                GraphProperty.AppId, new Guid(Globals.ClientId), ExpressionType.Equal);
+                GraphProperty.AppId, new Guid(ConfigHelper.ClientId), ExpressionType.Equal);
             PagedResults<Application> pagedApp = graphConnection.List<Application>(null, filter);
 
             PagedResults<GraphObject> owners = graphConnection.GetLinkedObjects(pagedApp.Results[0],
                 LinkProperty.Owners, null);
             foreach (var owner in owners.Results)
             {
-                DbAccess.AddRoleMapping(owner.ObjectId, "Owner");
                 if (owner.ObjectId == userObjectId)
                     claimsId.AddClaim(new Claim(ClaimTypes.Role, "Admin", ClaimValueTypes.String, "WebAppGroupClaimsDotNet"));
             }
@@ -194,7 +178,6 @@ namespace WebAppGroupClaimsDotNet
                 owners = graphConnection.GetLinkedObjects(pagedApp.Results[0], LinkProperty.Owners, owners.PageToken);
                 foreach (var owner in owners.Results)
                 {
-                    DbAccess.AddRoleMapping(owner.ObjectId, "Owner");
                     if (owner.ObjectId == userObjectId)
                         claimsId.AddClaim(new Claim(ClaimTypes.Role, "Admin", ClaimValueTypes.String, "WebAppGroupClaimsDotNet"));
                 }

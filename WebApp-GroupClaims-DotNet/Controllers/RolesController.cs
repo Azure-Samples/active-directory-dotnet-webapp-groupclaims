@@ -19,6 +19,7 @@ using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Net;
+using WebAppGroupClaimsDotNet.DAL;
 
 
 namespace WebAppGroupClaimsDotNet.Controllers
@@ -40,7 +41,7 @@ namespace WebAppGroupClaimsDotNet.Controllers
         {
             // Get Existing Mappings from Roles.xml
             ViewBag.Message = "RoleMappings";
-            List<RoleMapping> mappings = DbAccess.GetAllRoleMappings();
+            List<RoleMapping> mappings = RolesDbHelper.GetAllRoleMappings();
 
             //Dictionary of <ObjectID, DisplayName> pairs
             var nameDict = new Dictionary<string, string>();
@@ -51,35 +52,19 @@ namespace WebAppGroupClaimsDotNet.Controllers
             try
             {
                 string userObjectId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
-                authContext = new AuthenticationContext(Globals.Authority,
+                authContext = new AuthenticationContext(ConfigHelper.Authority,
                     new TokenDbCache(userObjectId));
-                var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
-                result = authContext.AcquireTokenSilent(Globals.GraphResourceId, credential,
+                var credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
+                result = authContext.AcquireTokenSilent(ConfigHelper.GraphResourceId, credential,
                     new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
             }
             catch (AdalException e)
             {
                 // If the user doesn't have an access token, they need to re-authorize
                 if (e.ErrorCode == "failed_to_acquire_token_silently")
-                {
-                    // If refresh is set to true, the user has clicked the link to be authorized again.
-                    if (Request.QueryString["reauth"] == "True")
-                    {
-
-                        // Send an OpenID Connect sign-in request to get a new set of tokens.
-                        // If the user still has a valid session with Azure AD, they will not be prompted for their credentials.
-                        // The OpenID Connect middleware will return to this controller after the sign-in response has been handled.
-
-                        HttpContext.GetOwinContext()
-                            .Authentication.Challenge(OpenIdConnectAuthenticationDefaults.AuthenticationType);
-                    }
-
-                    // The user needs to re-authorize.  Show them a message to that effect.
-                    ViewBag.ErrorMessage = "AuthorizationRequired";
-                    return View();
-                }
-
-                return RedirectToAction("Show Error", "Error", new { errorMessage = "Error while acquiring token." });
+                    return RedirectToAction("Reauth", "Error", new { redirectUri = Request.Url });
+                
+                return RedirectToAction("ShowError", "Error", new { errorMessage = "Error while acquiring token." });
             }
 
             // Construct the <ObjectID, DisplayName> Dictionary, Add Lists of Mappings to ViewData
@@ -96,10 +81,9 @@ namespace WebAppGroupClaimsDotNet.Controllers
                     {
                         // The user needs to re-authorize.  Show them a message to that effect.
                         authContext.TokenCache.Clear();
-                        ViewBag.ErrorMessage = "AuthorizationRequired";
-                        return View();
+                        RedirectToAction("Reauth", "Error", new { redirectUri = Request.Url });
                     }
-                    return RedirectToAction("Show Error", "Error", new { errorMessage = "Error while calling Graph API." });
+                    return RedirectToAction("ShowError", "Error", new { errorMessage = "Error while calling Graph API." });
                 }
             }
             
@@ -108,7 +92,7 @@ namespace WebAppGroupClaimsDotNet.Controllers
             ViewData["roles"] = Globals.Roles;
             ViewData["host"] = Request.Url.AbsoluteUri;
             ViewData["token"] = result.AccessToken;
-            ViewData["tenant"] = Globals.Tenant;
+            ViewData["tenant"] = ConfigHelper.Tenant;
             return View();
         }
 
@@ -132,10 +116,10 @@ namespace WebAppGroupClaimsDotNet.Controllers
                 try
                 {
                     string userObjectId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
-                    var authContext = new AuthenticationContext(Globals.Authority,
+                    var authContext = new AuthenticationContext(ConfigHelper.Authority,
                         new TokenDbCache(userObjectId));
-                    var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
-                    result = authContext.AcquireTokenSilent(Globals.GraphResourceId, credential,
+                    var credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
+                    result = authContext.AcquireTokenSilent(ConfigHelper.GraphResourceId, credential,
                         new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
                 }
                 catch (AdalException e)
@@ -144,7 +128,7 @@ namespace WebAppGroupClaimsDotNet.Controllers
                         return RedirectToAction("Index", "Roles", null);  
                 }
 
-                DbAccess.AddRoleMapping(formCollection["id"], formCollection["role"]);
+                RolesDbHelper.AddRoleMapping(formCollection["id"], formCollection["role"]);
             }
 
             return RedirectToAction("Index", "Roles", null);
@@ -165,7 +149,7 @@ namespace WebAppGroupClaimsDotNet.Controllers
             foreach (string key in formCollection.Keys)
             {
                 if (formCollection[key].Equals("delete"))
-                    DbAccess.RemoveRoleMapping(Convert.ToInt32(key));
+                    RolesDbHelper.RemoveRoleMapping(Convert.ToInt32(key));
             }
             return RedirectToAction("Index", "Roles", null);
         }
@@ -217,7 +201,7 @@ namespace WebAppGroupClaimsDotNet.Controllers
             // Setup Graph API connection
             Guid ClientRequestId = Guid.NewGuid();
             var graphSettings = new GraphSettings();
-            graphSettings.ApiVersion = Globals.GraphApiVersion;
+            graphSettings.ApiVersion = ConfigHelper.GraphApiVersion;
             var graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
 
             try

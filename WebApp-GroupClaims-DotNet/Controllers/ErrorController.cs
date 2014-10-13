@@ -1,4 +1,6 @@
 ﻿using System.Web.Mvc;
+using System.Web;
+using Microsoft.Owin.Security;
 
 namespace WebAppGroupClaimsDotNet.Controllers
 {
@@ -13,6 +15,12 @@ namespace WebAppGroupClaimsDotNet.Controllers
         {
             ViewBag.SignIn = signIn;
             ViewBag.ErrorMessage = errorMessage;
+            return View();
+        }
+
+        public ActionResult Reauth(string redirectUri)
+        {
+            ViewBag.RedirectUri = redirectUri;
             return View();
         }
     }

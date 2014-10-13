@@ -2,22 +2,17 @@
     ViewBag.Title = "About";
 }
 <h2>@ViewBag.Title.</h2>
-<h3>Your current roles:</h3>
+<h3>Your Current Application Roles:</h3>
 <ul>
     @foreach (string str in (List<string>)ViewData["myroles"])
     {
         <li>@str</li>
     }
 </ul>
-<h3>Your current groups:</h3>
+<h3>Your Current Groups:</h3>
 <ul>
     @foreach (string str in (List<string>)ViewData["mygroups"])
     {
         <li>@str</li>
     }
 </ul>
-
-@if (ViewBag.ErrorMessage == "AuthorizationRequired")
-{
-    <p>You might need to re-authenticate to see User Info. Click @Html.ActionLink("here", "About", "Home", new { reauth = true }, null) to re-authenticate.</p>
-}

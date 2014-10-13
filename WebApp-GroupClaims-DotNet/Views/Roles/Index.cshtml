@@ -2,38 +2,42 @@
     ViewBag.Title = "Index";
 }
 
-@if (User.Identity.IsAuthenticated && (ViewBag.ErrorMessage == null || ViewBag.ErrorMessage != "AuthorizationRequired"))
+@if (User.Identity.IsAuthenticated)
 {
-    <h2>Assign User Roles</h2>
+    <h2>Manage Application Roles</h2>
 
     //Form to Assign a New Role
     using (Html.BeginForm("AssignRole", "Roles", FormMethod.Post, new { id = "assign-form" }))
     {
-        <div class="assign-role">
-            <p class="search-hint">Search for a User or Group:</p>
-            <p>
-                Select Role:
-                <select name="role">
-                    @foreach (String str in (List<String>)ViewData["roles"])
-                    {
-                        if (str != "Owner")
+        <input id="hidden-input" type="hidden" name="id" />
+        <div style="height:250px">
+            <div style="float:left">
+                <p style="float:left">Search for Users/Groups:</p>
+                <div style="float:left;position:relative;left:10px">
+                    <input id="search" type="text" name="input">
+                    <div class="aadpicker-search-results"></div> @*OPTIONAL!!!*@
+                </div>
+            </div>
+
+            <div style="width:20px;height:1px;float:left"></div>
+
+            <div>
+                <p style="float:left">Select Role:</p>
+                <div style="position:relative;left:10px">
+                    <select name="role">
+                        @foreach (String str in (List<String>)ViewData["roles"])
                         {
                             <option value="@str"> @str</option>
                         }
-                    }
-                </select>
-            </p>
+                    </select>
+                    <br />
+                    <input type="submit" id="submit-button" value="Assign Role" />
+                </div>
+            </div>
+        </div>
 
-            <input type="submit" id="submit-button" value="Assign Role" />
-        </div>
-        <div>
-            <input id="search" type="text" name="input">
-            <input id="hidden-input" type="hidden" name="id" />
-            <div class="aadpicker-search-results"></div> @*OPTIONAL!!!*@
-        </div>
-    
-        // People/Group Picker Code
         <script>
+            // People/Group Picker Code
             var maxResultsPerPage = 14;
             var searchUrl = window.location.protocol + "//" + window.location.host + "/Roles/Search";
             var input = document.getElementById("search");
@@ -41,7 +45,7 @@
             var tenant = "@ViewData["tenant"]";
 
             var picker = AadPicker(searchUrl, maxResultsPerPage, input, token, tenant);
-            
+
             // Submit the selected user/group to be asssigned.
             $("#submit-button").click({ picker: picker }, function () {
                 if (!picker.selected)
@@ -51,6 +55,10 @@
 
         </script>
     }
+
+    <p>*Note that Azure AD Application Owners will have Admin Access, but will not appear below
+    unless explicitly assigned.  You can manage Application Owners in the 
+    <a href="https://manage.windowsazure.com">Azure Management Portal</a>.</p>
 
     //List out users in each role with checkboxes for removing roles
     using (Html.BeginForm("RemoveRole", "Roles", FormMethod.Post))
@@ -88,14 +96,7 @@
                                 @mapping.ObjectId
                             </td>
                             <td>
-                                @if (mapping.Role == "Owner")
-                                {
-                                    <p>*You can only delete owners in Azure Portal.</p>
-                                }
-                                else 
-                                {
-                                    <input type="checkbox" name="@mapping.RoleMappingID" value="delete" />
-                                }
+                                <input type="checkbox" name="@mapping.RoleMappingID" value="delete" />
                             </td>
                         </tr>
                     }
@@ -107,9 +108,4 @@
         <input type="submit" value="Remove Roles" />
     }
 
-}
-
-@if (ViewBag.ErrorMessage == "AuthorizationRequired")
-{
-    <p>You might need to re-authenticate to see Roles. Click @Html.ActionLink("here", "Index", "Roles", new { reauth = true }, null) to re-authenticate.</p>
 }

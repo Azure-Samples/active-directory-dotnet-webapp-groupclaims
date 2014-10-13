@@ -55,41 +55,25 @@ namespace WebAppGroupClaimsDotNet.Controllers
             try
             {
                 string userObjectId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
-                authContext = new AuthenticationContext(Globals.Authority,
+                authContext = new AuthenticationContext(ConfigHelper.Authority,
                     new TokenDbCache(userObjectId));
-                var credential = new ClientCredential(Globals.ClientId, Globals.AppKey);
-                result = authContext.AcquireTokenSilent(Globals.GraphResourceId, credential,
+                var credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
+                result = authContext.AcquireTokenSilent(ConfigHelper.GraphResourceId, credential,
                     new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
             }
             catch (AdalException e)
             {
                 // If the user doesn't have an access token, they need to re-authorize
                 if (e.ErrorCode == "failed_to_acquire_token_silently")
-                {
-                    // If refresh is set to true, the user has clicked the link to be authorized again.
-                    if (Request.QueryString["reauth"] == "True")
-                    {
+                        return RedirectToAction("Reauth", "Error", new { redirectUri = Request.Url });
 
-                        // Send an OpenID Connect sign-in request to get a new set of tokens.
-                        // If the user still has a valid session with Azure AD, they will not be prompted for their credentials.
-                        // The OpenID Connect middleware will return to this controller after the sign-in response has been handled.
-
-                        HttpContext.GetOwinContext()
-                            .Authentication.Challenge(OpenIdConnectAuthenticationDefaults.AuthenticationType);
-                    }
-
-                    // The user needs to re-authorize.  Show them a message to that effect.
-                    ViewBag.ErrorMessage = "AuthorizationRequired";
-                    return View();
-                }
-
-                return RedirectToAction("Show Error", "Error", new { errorMessage = "Error while acquiring token." });
+                return RedirectToAction("ShowError", "Error", new { errorMessage = "Error while acquiring token." });
             }
 
             // Setup Graph Connection
             Guid clientRequestId = Guid.NewGuid();
             var graphSettings = new GraphSettings();
-            graphSettings.ApiVersion = Globals.GraphApiVersion;
+            graphSettings.ApiVersion = ConfigHelper.GraphApiVersion;
             var graphConnection = new GraphConnection(result.AccessToken, clientRequestId, graphSettings);
 
             Dictionary<string, string> groupNameDict = new Dictionary<string, string>();
@@ -114,11 +98,10 @@ namespace WebAppGroupClaimsDotNet.Controllers
                 if (e.HttpStatusCode == HttpStatusCode.Unauthorized) {
                     // The user needs to re-authorize.  Show them a message to that effect.
                     authContext.TokenCache.Clear();
-                    ViewBag.ErrorMessage = "AuthorizationRequired";
-                    return View();
+                    return RedirectToAction("Reauth", "Error", new { redirectUri = Request.Url });
                 }
 
-                return RedirectToAction("Show Error", "Error", new { errorMessage = "Error while calling Graph API." });
+                return RedirectToAction("ShowError", "Error", new { errorMessage = "Error while calling Graph API." });
             }
 
             // For the security groups the user is a member of, get the DisplayName

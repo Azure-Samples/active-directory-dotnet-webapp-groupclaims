@@ -11,7 +11,7 @@
     <ProjectTypeGuids>{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</ProjectTypeGuids>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>WebAppRBACDotNet</RootNamespace>
+    <RootNamespace>WebAppGroupClaimsDotNet</RootNamespace>
     <AssemblyName>WebApp-GroupClaims-DotNet</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <MvcBuildViews>false</MvcBuildViews>
@@ -174,6 +174,8 @@
     <Compile Include="Controllers\RolesController.cs" />
     <Compile Include="Controllers\TasksController.cs" />
     <Compile Include="DAL\GroupClaimContext.cs" />
+    <Compile Include="DAL\RolesDbHelper.cs" />
+    <Compile Include="DAL\TasksDbHelper.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
@@ -182,7 +184,7 @@
     <Compile Include="Models\TokenCacheEntry.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Startup.cs" />
-    <Compile Include="Utils\DbAccess.cs" />
+    <Compile Include="Utils\ConfigHelper.cs" />
     <Compile Include="Utils\Globals.cs" />
     <Compile Include="Utils\TokenDbCache.cs" />
   </ItemGroup>
@@ -234,6 +236,7 @@
     <Content Include="Scripts\jquery-2.1.1.min.map" />
     <Content Include="Views\Tasks\Index.cshtml" />
     <Content Include="Views\Error\ShowError.cshtml" />
+    <Content Include="Views\Error\Reauth.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="packages.config" />

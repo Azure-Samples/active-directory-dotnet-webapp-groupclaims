@@ -18,14 +18,14 @@ namespace WebAppGroupClaimsDotNet.Controllers
         /// <summary>
         /// Sends an OpenIDConnect Sign-In Request.
         /// </summary>
-        public void SignIn()
+        public void SignIn(string redirectUri)
         {
-            if (!Request.IsAuthenticated)
-            {
-                HttpContext.GetOwinContext()
-                    .Authentication.Challenge(new AuthenticationProperties {RedirectUri = "/"},
-                        OpenIdConnectAuthenticationDefaults.AuthenticationType);
-            }
+            if (redirectUri == null)
+                redirectUri = "/";
+
+            HttpContext.GetOwinContext()
+                .Authentication.Challenge(new AuthenticationProperties {RedirectUri = redirectUri},
+                    OpenIdConnectAuthenticationDefaults.AuthenticationType);
         }
 
         /// <summary>
@@ -38,7 +38,7 @@ namespace WebAppGroupClaimsDotNet.Controllers
             {
                 string userObjectID =
                 ClaimsPrincipal.Current.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier").Value;
-                var authContext = new AuthenticationContext(Globals.Authority, new TokenDbCache(userObjectID));
+                var authContext = new AuthenticationContext(ConfigHelper.Authority, new TokenDbCache(userObjectID));
                 authContext.TokenCache.Clear();
 
                 HttpContext.GetOwinContext().Authentication.SignOut(

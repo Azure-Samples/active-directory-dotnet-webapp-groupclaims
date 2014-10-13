@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Web.Mvc;
+using WebAppGroupClaimsDotNet.DAL;
 using WebAppGroupClaimsDotNet.Utils;
 //The following libraries were defined and added to this sample.
 
@@ -18,7 +19,7 @@ namespace WebAppGroupClaimsDotNet.Controllers
         public ActionResult Index()
         {
             ViewBag.Message = "Tasks";
-            ViewData["tasks"] = DbAccess.GetAllTasks();
+            ViewData["tasks"] = TasksDbHelper.GetAllTasks();
             return View();
         }
 
@@ -38,19 +39,33 @@ namespace WebAppGroupClaimsDotNet.Controllers
             {
                 // Add A New task to Tasks.xml
                 if (formCollection["newTask"] != null && formCollection["newTask"].Length != 0)
-                    DbAccess.AddTask(formCollection["newTask"]);
+                    TasksDbHelper.AddTask(formCollection["newTask"]);
             }
 
             if (User.IsInRole("Admin") || User.IsInRole("Approver"))
             {
                 // Change status of existing task
-                    foreach (string key in formCollection.Keys)
-                    { 
-                        if (key != "newtask")
-                            DbAccess.UpdateTask(Convert.ToInt32(key), formCollection[key]);
-                    }
+                foreach (string key in formCollection.Keys)
+                { 
+                    if (key != "newtask" && key != "delete")
+                        TasksDbHelper.UpdateTask(Convert.ToInt32(key), formCollection[key]);
+                }
             }
 
+            if (User.IsInRole("Admin"))
+            { 
+                // Delete a Task
+                foreach (string key in formCollection.Keys)
+                { 
+                    if (key == "delete" && formCollection[key] != null && formCollection[key].Length > 0)
+                    {
+                        string[] toDelete = formCollection[key].Split(',');
+                        foreach (string id in toDelete) {
+                            TasksDbHelper.DeleteTask(Convert.ToInt32(id));
+                        }
+                    }
+                }
+            }
             return RedirectToAction("Index", "Tasks");
         }
     }

@@ -1,4 +1,4 @@
-WebApp-RBAC-DotNet
+WebApp-GroupClaims-DotNet
 ==================================
 
 This sample shows how to build an MVC web application that uses Azure AD for sign-in using the OpenID Connect protocol and uses Azure AD Security Groups for role based access control. This sample uses the OpenID Connect ASP.Net OWIN middleware and ADAL .Net.
@@ -39,7 +39,7 @@ Every Azure subscription has an associated Azure Active Directory tenant.  If yo
 
 From your shell or command line:
 
-`git clone https://github.com/AzureADSamples/WebApp-RBAC-DotNet.git`
+`git clone https://github.com/AzureADSamples/WebApp-GroupClaims-DotNet.git`
 
 ### Step 2:  Create a user account in your Azure Active Directory tenant
 
@@ -85,7 +85,7 @@ To deploy this application to Azure, you will publish it to an Azure Website.
 3. Click New in the bottom left hand corner, select Compute --> Web Site --> Quick Create, select the hosting plan and region, and give your web site a name, e.g. tasktracker-contoso.azurewebsites.net.  Click Create Web Site.
 4. Once the web site is created, click on it to manage it.  For the purposes of this sample, download the publish profile from Quick Start or from the Dashboard and save it.  Other deployment mechanisms, such as from source control, can also be used.
 5. While still in the Azure management portal, navigate back to the Azure AD tenant you used in creating this sample.  Under applications, select your Task Tracker application.  Under configure, update the Sign-On URL and Reply URL fields to the root address of your published application, for example https://tasktracker-contoso.azurewebsites.net/.  Click Save.
-5. Switch to Visual Studio and go to the WebApp-RBAC-DotNet project.  In the web.config file, update the "PostLogoutRedirectUri" value to the root address of your published appliction as well.
+5. Switch to Visual Studio and go to the WebApp-GroupClaims-DotNet project.  In the web.config file, update the "PostLogoutRedirectUri" value to the root address of your published appliction as well.
 6. Right click on the project in the Solution Explorer and select Publish.  Under Profile, click Import, and import the publish profile that you just downloaded.
 6. On the Connection tab, update the Destination URL so that it is https, for example https://tasktracker-contoso.azurewebsites.net.  Click Next.
 7. On the Settings tab, make sure Enable Organizational Authentication is NOT selected.  Click Publish.
@@ -106,14 +106,14 @@ This section will help you understand the important sections of the sample and h
 
 1. A good place to start is with authentication.  In `Views\Shared` add a MVC5 Partial Page `_LoginPartial.cshtml`.  Replace the contents of the file with the contents of the file of same name from the sample.
 2. Also in `Views\Shared`, replace the contents of `_Layout.cshtml` with the code from the sample.  This will light up the `_LoginParital` view from above, ensure that only Admins can view the role management page, and include some of the javascript necessary for later.
-3. In `Controllers`, add a new empty controller and name it AccountController.  Replace its implementation with the sample's.  Don't worry about the `WebAppRBACDotNet` namespace for now, you'll do a global search and replace later.  This controller handles authentication when the user clicks on 'Sign In' or 'Sign Out' in our `_LoginPartial` view.
+3. In `Controllers`, add a new empty controller and name it AccountController.  Replace its implementation with the sample's.  Don't worry about the `WebAppGroupClaimsDotNet` namespace for now, you'll do a global search and replace later.  This controller handles authentication when the user clicks on 'Sign In' or 'Sign Out' in our `_LoginPartial` view.
 4. Right-click on the project, select Add --> Class.  In the Add Class dialog, search for "OWIN". Select "OWIN Startup Class" from the results, and name your new OWIN Startup Class `Startup.cs`.  Remove the `.App_Start` portion of the namespace.  You can replace the implementation of this class with the one from the sample - but all you need to do here is change the class declaration to a partial class, and call the ConfigureAuth method.
 5. In the `App_Start` folder, create a class `Startup.Auth.cs`.  Replace the code for the `Startup` class with the code from the sample.  This class uses the OWIN middleware for authenticating the user to AAD, by sending and receiving messages according to the OpenIDConnect protocol.  If you would like to see this authentication in action, check out our [WebApp-OpenIDConnect-DotNet](https://github.com/AzureADSamples/WebApp-OpenIDConnect-DotNet) sample.  This Startup class also contains much of the logic necessary for implementing RBAC - but we'll come back to that shortly.
 
 #### Build the Database Schema
 
 1. First, in `Models`, create three new classes - `RoleMapping.cs`, `Task.cs`, and `TokenCacheEntry.cs`.  These will serve as the all of the data models our application needs to persist data.  Copy each of their implementations from the sample.  In `Task.cs` you can see each task has an associated TaskID, TaskText, and Status.  Similarly, a RoleMapping object contains an ID, an ObjectID, and a Role.  The RoleMapping object represents a tie between an AAD object (a user or a group) and an application role (Admin, Approver, Writer, Observer), and will be used to persist a record of application role grants.  Lastly, the TokenCacheEntry object is used to persist AAD access tokens needed for calling the AAD Graph API on a per-user basis.
-2. Next, create a new folder in your project called `DAL`, and within it add a new class `RbacContext.cs`, copying the sample's implementation.  This class will be used by Entity Framework 6 to construct the database schema, which you can see contains a table for RoleMappings, Tasks, and TokenCacheEntries.
+2. Next, create a new folder in your project called `DAL`, and within it add a new class `GroupClaimContext.cs`, copying the sample's implementation.  This class will be used by Entity Framework 6 to construct the database schema, which you can see contains a table for RoleMappings, Tasks, and TokenCacheEntries.
 3. Create another new folder called `Utils`.  Add a new class to that folder called `DbAccess`, and copy in the implementation from the sample.  This class handles all reads and writes to the database for both Tasks and RBAC data.
 4. Also create a new class in `Utils` called `TokenDbCache`, and copy in the sample's code.  This class handles all reads and writes to the database for AAD Access Tokens. 
 
@@ -136,7 +136,7 @@ This section will help you understand the important sections of the sample and h
 5. Add a new javascript file to `Scripts` called `AadPickerLibrary.js`, and copy the code from the same file in the sample.  This file is a small js library that is used to select users and groups from a tenant in AAD.  In this app, it is used to select users and groups for assignment to roles in the role management page.
 6. Add a new class to the root directory of your project called `AuthorizeAttribute.cs`, and copy its implementation as well.  This class helps the MVC framework differentiate between a request that is Forbidden (user is authenticated, but has not been granted access) and Unauthorized (user is not authenticated), ensuring proper app behavior on page redirects.
 7. Lastly, you need to provide the application with some specifics about your app's registration in the Azure Management Portal.  Create a class in `Utils` called `Globals.cs`, and copy in the code from the sample.  This class pulls in various values from the `web.config` file that are needed for signing the user in, acquiring access tokens, calling the AAD Graph API, and so on.  In `web.config`, in the `<appSettings>` tag, create keys for `ida:ClientId`, `ida:AppKey`, `ida:AADInstance`, `ida:Tenant`, `ida:PostLogoutRedirectUri`, `ida:GraphApiVersion` and `ida:GraphUrl` and set the values accordingly.  For the public Azure AD, the value of `ida:AADInstance` is `https://login.windows.net/{0}`, the value of `ida:GraphApiVersion` is `1.22-preview`, and the value of `ida:GraphUrl` is `https://graph.windows.net`.
-8. Finally, do a global search for `WebAppRBACDotNet` and replace it with the namespace of your application.  This will ensure that your classes do not contain the namespace of the sample app.
+8. Finally, do a global search for `WebAppGroupClaimsDotNet` and replace it with the namespace of your application.  This will ensure that your classes do not contain the namespace of the sample app.
 
 #### Run the RBAC App
 

@@ -2,25 +2,61 @@
     ViewBag.Title = "Tasks";
 }
 
-<h2>Tasks</h2>
+<h2>TaskTracker</h2>
+
+<p>
+    This page demonstrates the use of the User.IsInRole() method to display appropriate UI components
+    based on the currently signed-in user.  On this page, Observers can only read the tasks and their
+    statuses.  Writers can add new tasks, but cannot change the status of an existing task.  Approvers
+    can change the status of an existing task, but cannot add a new task.  Admins can peform all actions,
+    including deleting tasks altogether.
+</p>
 
 @if (User.Identity.IsAuthenticated)
 {
     using (Html.BeginForm("TaskSubmit", "Tasks", FormMethod.Post))
     {
-        <table>
-            <tr>
-                <th>Task</th>
-                <th>Status</th>
-            </tr>
+        <div>
+            @if (User.IsInRole("Admin") || User.IsInRole("Writer") || User.IsInRole("Approver"))
+            {
+                if (User.IsInRole("Admin") || User.IsInRole("Writer"))
+                {
+                    <div>
+                        <div style="float:left"><p>New Task:</p></div>
+                        <div style="width:10px;height:30px;float:left"></div>
+                        <div><input type="text" name="newtask"></div>
+                    </div>
+                }
+                <div>
+                    <div></div>
+                    <div><input type="submit" value="UpdateTasks" /></div>
+                    <div></div>
+                </div>
+            }
+        </div>
+
+
+        <br />
+        <br />
+
+        <div class="container">
+            <div class="row"> 
+                <div class="col-md-2"><h4>Task</h4></div>
+                <div class="col-md-2"><h4>Status</h4></div>
+                @if (User.IsInRole("Admin"))
+                {
+                    <div class="col-md-2"><h4>Delete</h4></div>
+                }
+            </div>
+
 
             @foreach (WebAppGroupClaimsDotNet.Models.Task task in (List<WebAppGroupClaimsDotNet.Models.Task>)ViewData["tasks"])
             {
-                <tr>
-                    <td>@task.TaskText</td>
+                <div class="row">
+                    <div class="col-md-2">@task.TaskText</div>
                     @if (User.IsInRole("Approver") || User.IsInRole("Admin"))
                     {
-                        <td>
+                        <div class="col-md-2">
                             <select name="@task.TaskID">
                                 @foreach (string status in WebAppGroupClaimsDotNet.Utils.Globals.Statuses)
                                 {
@@ -34,27 +70,24 @@
                                     }
                                 }
                             </select>
-                        </td>
+                        </div>
                     }
                     else
                     {
-                        <td>@task.Status</td>
+                        <div class="col-md-2">@task.Status</div>
                     }
-                </tr>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <div class="col-md-1"><input type="checkbox" name="delete" value="@task.TaskID" /></div>
+                        <div class="col-md-5"></div>
+                    }
+                    else
+                    {
+                        <div class="col-md-8"></div>
+                    }
+                </div>
             }
-
-        </table>
-
-        if (User.IsInRole("Admin") || User.IsInRole("Writer"))
-        {
-            <p>Add New Task: <input type="text" name="newtask"></p>
-        }
-
-        if (User.IsInRole("Admin") || User.IsInRole("Writer") || User.IsInRole("Approver"))
-        {
-            <input type="submit" value="UpdateTasks" />
-        }
-
+        </div>
     }
 }
 
