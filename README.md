@@ -72,7 +72,7 @@ If you already have a user account with Global Administrator rights in your Azur
 5. Find the app key `ida:AppKey` and replace the value with the key for the application from the Azure portal.
 6. If you changed the base URL of the TodoListWebApp sample, find the app key `ida:PostLogoutRedirectUri` and replace the value with the new base URL of the sample.
 
-### Step 6:  Run the sample
+### Step 5:  Run the sample
 
 Clean the solution, rebuild the solution, and run it.  Explore the sample by signing in, navigating to different pages, adding tasks, signing out, etc.  Create several user accounts in the Azure Management Portal, and assign them different roles using the application owner account you created.  Create a Security Group in the Azure Management Portal, add users to it, and again add roles to it using an Admin account.  Explore the differences between each role throughout the application, namely the Tasks and Roles pages.
 
