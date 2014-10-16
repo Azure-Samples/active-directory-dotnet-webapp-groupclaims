@@ -10,29 +10,29 @@
     using (Html.BeginForm("AssignRole", "Roles", FormMethod.Post, new { id = "assign-form" }))
     {
         <input id="hidden-input" type="hidden" name="id" />
-        <div style="height:250px">
-            <div style="float:left">
-                <p style="float:left">Search for Users/Groups:</p>
-                <div style="float:left;position:relative;left:10px">
+        <div id="assign-role">
+            <div id="assign-role-form">
+                <div id="assign-role-search" class="assign-role-row">
+                    <p class="assign-role-label">Search for Users/Groups:</p>
                     <input id="search" type="text" name="input">
-                    <div class="aadpicker-search-results"></div> @*OPTIONAL!!!*@
                 </div>
-            </div>
-
-            <div style="width:20px;height:1px;float:left"></div>
-
-            <div>
-                <p style="float:left">Select Role:</p>
-                <div style="position:relative;left:10px">
-                    <select name="role">
+                <div id="assign-role-select" class="assign-role-row">
+                    <p class="assign-role-label">Select Role:</p>
+                    <select name="role" id="assign-role-dropdown">
                         @foreach (String str in (List<String>)ViewData["roles"])
                         {
-                            <option value="@str"> @str</option>
+                            <option class="assign-role" value="@str"> @str</option>
                         }
                     </select>
-                    <br />
+                </div>
+                <div id="assign-role-submit" class="assign-role-row">
+                    <p class="assign-role-label"></p>
                     <input type="submit" id="submit-button" value="Assign Role" />
                 </div>
+            </div>
+            <div id="search-results">
+                <p class="search-results-label">Select a User or Group</p>
+                <div class="aadpicker-search-results"></div> @*OPTIONAL!!!*@
             </div>
         </div>
 

@@ -50,7 +50,7 @@ input[type="checkbox"].input-validation-error {
 }
 
 #search {
-    width:300px;
+    width:200px;
 }
 
 .aadpicker-search-results {
@@ -58,7 +58,7 @@ input[type="checkbox"].input-validation-error {
     height:200px;
     overflow-y:scroll;
     overflow-x:hidden;
-    white-space:nowrap
+    white-space:nowrap;
 }
 
 .aadpicker-result-elem {
@@ -72,4 +72,52 @@ input[type="checkbox"].input-validation-error {
 
 .aadpicker-result-hovered {
     background-color: azure;
+}
+
+#assign-role {
+    padding-bottom: 20px;
+}
+
+#assign-role-form {
+    padding-right: 20px;
+    display:inline-block;
+    vertical-align:top;
+}
+
+#assign-role-search {
+
+}
+
+.assign-role-label {
+    float:left;
+    width:175px;
+    text-align:right;
+    padding-right: 10px;
+}
+
+#assign-role-select {
+
+}
+
+.search-results-label {
+    width:inherit;
+    text-align:center;
+    border-bottom:solid;
+    border-bottom-width:thin;
+}
+
+#search-results {
+    display:inline-block;
+}
+
+.assign-role-row {
+    padding-bottom:10px;
+}
+
+#submit-button {
+    width:100px;
+}
+
+#assign-role-dropdown {
+    width:100px;
 }

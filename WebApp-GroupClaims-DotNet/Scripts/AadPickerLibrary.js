@@ -289,12 +289,14 @@
             $(this).attr("data-selected", "false");
             $(this).css("background-color", picker.unSelectColor);
             picker.selected = null;
+            picker.$input.get()[0].value = picker.lastDisplayed;
         }
         else if ($(this).attr("data-selected") == "false") {
             $(".aadpicker-result-elem").attr("data-selected", "false").css("background-color", picker.unSelectColor);
             $(this).attr("data-selected", "true");
             $(this).css("background-color", picker.selectColor);
             picker.selected = picker.currentResults[$(this).attr("data-objectId")];
+            picker.$input.get()[0].value = $(this).text();
         }
     };
 
@@ -361,6 +363,7 @@
 
         if (results.error != undefined) {
             var $msg = $("<p>" + results.error + "</p>").css("color", "red");
+            this.lastDisplayed = results.error;
             $resultsDiv.empty();
             $resultsDiv.append($msg);
             return;
@@ -379,10 +382,9 @@
             toAppend.push($elem);
         }
 
-        if (inputValue != this.lastDisplayed)
+        if (inputValue != this.lastDisplayed || this.lastDisplayed == "Error during searching")
             $resultsDiv.empty();
         $resultsDiv.append(toAppend);
-        console.log(inputValue);
 
         this.lastDisplayed = inputValue;
 
