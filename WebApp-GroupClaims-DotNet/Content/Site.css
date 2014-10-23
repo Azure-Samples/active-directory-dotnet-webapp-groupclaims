@@ -50,7 +50,7 @@ input[type="checkbox"].input-validation-error {
 }
 
 #search {
-    width:200px;
+    width:300px;
 }
 
 .aadpicker-search-results {
@@ -120,4 +120,25 @@ input[type="checkbox"].input-validation-error {
 
 #assign-role-dropdown {
     width:100px;
+}
+
+.aadpicker-result-row {
+    display:inline-block;
+    width:inherit;
+}
+
+.aadpicker-result-type {
+    text-align:right;
+    display:inline-block;
+    float:right;
+}
+
+.aadpicker-result-label {
+    display:inline-block;
+}
+
+.ui-autocomplete {
+    height:200px;
+    overflow-y:scroll;
+    overflow-x:hidden;
 }
