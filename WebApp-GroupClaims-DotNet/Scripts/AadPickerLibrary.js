@@ -382,7 +382,7 @@
             toAppend.push($elem);
         }
 
-        if (inputValue != this.lastDisplayed || this.lastDisplayed == "Error during searching")
+        if (inputValue != this.lastDisplayed || this.lastDisplayed == "Error during searching" || !this.isPaging)
             $resultsDiv.empty();
         $resultsDiv.append(toAppend);
 
