@@ -11,15 +11,16 @@
         this.selected = null;
 
         // Members
-        this.currentResults = {};
+        this.currentResults = [];
         this.userSkipToken = null;
         this.groupSkipToken = null;
-        this.lastDisplayed = "";
+        this.lastDisplayed = null;
         //this.lastInput;
         this.isPaging = false;
         this.selectColor;
         this.unSelectColor;
         this.hoverColor;
+        this.isResultsOpen = false;
 
         // Constants
         this.graphLoc = "https://graph.windows.net";
@@ -57,17 +58,45 @@
             minLength: 0,
             delay: 500,
             open: function (event, ui) {
-                //picker.Select();
+                console.log("open event");
+                picker.isResultsOpen = true;
+                picker.lastDisplayed = event.target.value;
+                console.log("Displayed: " + event.target.value);
+                // TODO: picker.Select();
+                if (picker.isPaging) {
+                    picker.isPaging = false;
+                    console.log("Paging Done.")
+                }
+                picker.Page();
             },
             select: function (event, ui) {
                 event.preventDefault();
             },
             focus: function (event, ui) {
-                event.preventDefault();
+                //event.preventDefault();
             },
-        }).data("custom-catcomplete").close = function (event) {
+            close: function (event, ui) {
+                console.log("close event");
+                picker.isResultsOpen = false; 
+                picker.lastDisplayed = null;
+                picker.userSkipToken = null;
+                picker.groupSkipToken = null;
+                picker.currentResults = [];
+            },
+            //response: function (event, ui) {
+
+            //},
+        })
+            .data("custom-catcomplete").close = function (event) {
             return false;
         }
+
+        this.$input.focus(function (event) {
+            if ($(this)[0].value == "" && !picker.isResultsOpen)
+                $(this).catcomplete("search", "");
+        });
+
+        picker.BindPagingListener();
     }
 
     AadPicker.prototype.ConstructUserQuery = function (inputValue) {
@@ -88,7 +117,7 @@
             "') or startswith(city,'" + inputValue + "')";
         }
 
-        if (this.userSkipToken && inputValue == this.lastDisplayed)
+        if (this.userSkipToken && this.lastDisplayed != null && inputValue == this.lastDisplayed)
             url += '&' + this.userSkipToken;
 
         return url;
@@ -106,7 +135,7 @@
             "') or startswith(mailNickname,'" + inputValue + "')";
         }
 
-        if (this.groupSkipToken && inputValue == this.lastDisplayed)
+        if (this.groupSkipToken && this.lastDisplayed != null && inputValue == this.lastDisplayed)
             url += '&' + this.groupSkipToken;
 
         return url;
@@ -130,20 +159,27 @@
 
     AadPicker.prototype.Search = function (inputValue, callback) {
 
+        console.log("Searching: " + inputValue);
+        console.log(this.currentResults);
+        console.log("^^Searching...")
+
         var userQuery = this.ConstructUserQuery(inputValue);
         var groupQuery = this.ConstructGroupQuery(inputValue);
-                
-        var userDeffered = this.SendQuery(userQuery);
-        var groupDeffered = this.SendQuery(groupQuery);
+        
+        var userDeffered = new $.Deferred().resolve({value: []}, "success");
+        var groupDeffered = new $.Deferred().resolve({value: []}, "success");
+
+        if ((inputValue == this.lastDisplayed && this.userSkipToken) || inputValue != this.lastDisplayed)
+            userDeffered = this.SendQuery(userQuery);
+        if ((inputValue == this.lastDisplayed && this.groupSkipToken) || inputValue != this.lastDisplayed)
+            groupDeffered = this.SendQuery(groupQuery);
 
         var recordResults = function (picker, inputValue, callback) {
             return function (userQ, groupQ) {
-                var results;
 
                 if (userQ[1] == "success" && groupQ[1] == "success" 
                     && userQ[0].error == undefined && groupQ[0].error == undefined) {
 
-                    results = [];
                     var usersAndGroups = userQ[0].value.concat(groupQ[0].value);
 
                     if (userQ[0]["odata.nextLink"] != undefined) {
@@ -163,47 +199,84 @@
                         picker.groupSkipToken = null;
                     }
 
-                    if (inputValue != picker.lastDisplayed)
-                        picker.currentResults = {};
-
+                    if (picker.lastDisplayed == null || inputValue != picker.lastDisplayed)
+                        picker.currentResults = [];
+                    
                     for (var i = 0; i < usersAndGroups.length; i++) {
 
                         if (usersAndGroups[i].objectType == "User") {
-                            results.push({
+                            picker.currentResults.push({
                                 label: usersAndGroups[i].displayName,
                                 value: usersAndGroups[i].displayName,
                                 objectId: usersAndGroups[i].objectId,
                                 objectType: picker.userLabel,
                             });
                         } else if (usersAndGroups[i].objectType == "Group") {
-                            results.push({
+                            picker.currentResults.push({
                                 label: usersAndGroups[i].displayName,
                                 value: usersAndGroups[i].displayName,
                                 objectId: usersAndGroups[i].objectId,
                                 objectType: picker.groupLabel,
                             });
                         }
-                        
-
-                        picker.currentResults[usersAndGroups[i].objectId] = {
-                            objectId: usersAndGroups[i].objectId,
-                            displayName: usersAndGroups[i].displayName,
-                            objectType: usersAndGroups[i].objectType
-                        };
                     }
                 }
                 else {
-                    picker.currentResults = {};
-                    results = [{ label: "Error During Search" }];
+                    picker.currentResults = [];
+                    callback([{ label: "Error During Search" }]);
+                    picker.selected = null;
+                    return;
                 }
                 
                 picker.selected = null; //TODO
-                callback(results);
+                console.log(picker.currentResults);
+                console.log("^^^Displaying...")
+                callback(picker.currentResults);
             };
         };
 
         $.when(userDeffered, groupDeffered)
             .always(recordResults(this, inputValue, callback))
+    };
+
+    AadPicker.prototype.BindPagingListener = function () {
+
+        this.isPaging = false;
+        this.$input.catcomplete("widget").bind("scroll", { picker: this }, this.ScrollHandler);
+
+        //TODO: Unbind?
+        //TODO: Page when not max height & skip tokens exist
+
+    };
+
+    //AadPicker.prototype.UnbindPagingListener = function () {
+    //    var $resultsDiv = $(".ui-autocomplete");
+    //    $resultsDiv.unbind("scroll", { picker: this }, this.ScrollHandler);
+    //}
+
+    AadPicker.prototype.ScrollHandler = function () {
+
+        if ($(this).scrollTop() + $(this).innerHeight() >= this.scrollHeight && !picker.isPaging
+            && (picker.userSkipToken || picker.groupSkipToken)) {
+            picker.Page();
+        }
+        
+    };
+
+    AadPicker.prototype.Page = function () {
+
+        console.log("Paging...");
+        picker.isPaging = true;
+        picker.$input.catcomplete("search", this.lastDisplayed);
+    };
+
+    AadPicker.prototype.PageToMaxHeight = function () {
+
+        //var $resultsUL = this.$input.catcomplete("widget");
+
+
+        //if ($(this).scrollTop() + $(this).innerHeight() >= this.scrollHeight && !picker.isPaging
+
     };
 
     $.widget("custom.catcomplete", $.ui.autocomplete, {
@@ -219,13 +292,14 @@
             });
         },
         _renderItem: function (ul, item) {
+
             var label = $("<div>").addClass("aadpicker-result-label").append(item.label);
             var type = $("<div>").addClass("aadpicker-result-type").append(item.objectType);
             var toappend = [label, type];
 
             return $("<li>").addClass("aadpicker-result-elem").attr("data-selected", "false")
                 .attr("data-objectId", item.objectId).append(toappend).appendTo(ul);
-        }
+        },
     });
 
     return new AadPicker();
