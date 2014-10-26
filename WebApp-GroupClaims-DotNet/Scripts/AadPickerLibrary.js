@@ -15,7 +15,7 @@
         this.userSkipToken = null;
         this.groupSkipToken = null;
         this.lastDisplayed = null;
-        //this.lastInput;
+        this.lastInput;
         this.isPaging = false;
         this.selectColor;
         this.unSelectColor;
@@ -56,14 +56,13 @@
                 picker.Search(request.term, response);
             },
             minLength: 0,
-            delay: 500,
+            delay: 200,
             open: function (event, ui) {
                 console.log("open event");
                 picker.isResultsOpen = true;
-                picker.lastDisplayed = event.target.value;
-                console.log("Displayed: " + event.target.value);
                 // TODO: picker.Select();
                 if (picker.isPaging) {
+                    event.target.scrollTop = 0;
                     picker.isPaging = false;
                     console.log("Paging Done.")
                 }
@@ -77,7 +76,7 @@
             },
             close: function (event, ui) {
                 console.log("close event");
-                picker.isResultsOpen = false; 
+                picker.isResultsOpen = false;
                 picker.lastDisplayed = null;
                 picker.userSkipToken = null;
                 picker.groupSkipToken = null;
@@ -86,10 +85,10 @@
             //response: function (event, ui) {
 
             //},
-        })
-            .data("custom-catcomplete").close = function (event) {
-            return false;
-        }
+        });
+        //    .data("custom-catcomplete").close = function (event) {
+        //    return false;
+        //}
 
         this.$input.focus(function (event) {
             if ($(this)[0].value == "" && !picker.isResultsOpen)
@@ -159,6 +158,8 @@
 
     AadPicker.prototype.Search = function (inputValue, callback) {
 
+        this.lastInput = inputValue;
+
         console.log("Searching: " + inputValue);
         console.log(this.currentResults);
         console.log("^^Searching...")
@@ -199,8 +200,13 @@
                         picker.groupSkipToken = null;
                     }
 
-                    if (picker.lastDisplayed == null || inputValue != picker.lastDisplayed)
+                    console.log("currentResultsResetCheck");
+                    console.log(picker.lastDisplayed);
+                    console.log(inputValue);
+
+                    if (picker.lastDisplayed == null || inputValue != picker.lastDisplayed) {
                         picker.currentResults = [];
+                    }
                     
                     for (var i = 0; i < usersAndGroups.length; i++) {
 
@@ -228,10 +234,13 @@
                     return;
                 }
                 
-                picker.selected = null; //TODO
-                console.log(picker.currentResults);
-                console.log("^^^Displaying...")
-                callback(picker.currentResults);
+                if (inputValue == picker.lastInput) {
+                    picker.selected = null; //TODO
+                    console.log(picker.currentResults);
+                    console.log("^^^Displaying...")
+                    picker.lastDisplayed = inputValue;
+                    callback(picker.currentResults);
+                }
             };
         };
 
@@ -256,18 +265,20 @@
 
     AadPicker.prototype.ScrollHandler = function () {
 
-        if ($(this).scrollTop() + $(this).innerHeight() >= this.scrollHeight && !picker.isPaging
-            && (picker.userSkipToken || picker.groupSkipToken)) {
-            picker.Page();
-        }
+        picker.Page();
         
     };
 
     AadPicker.prototype.Page = function () {
-
-        console.log("Paging...");
-        picker.isPaging = true;
-        picker.$input.catcomplete("search", this.lastDisplayed);
+        var $resultsDiv = this.$input.catcomplete("widget");
+        if ($resultsDiv.scrollTop() + $resultsDiv.innerHeight() >= $resultsDiv[0].scrollHeight && !picker.isPaging && (this.userSkipToken || this.groupSkipToken)) {
+            console.log("Pre-Page");
+            console.log(this.userSkipToken);
+            console.log(this.groupSkipToken);
+            console.log("Paging...");
+            this.isPaging = true;
+            this.$input.catcomplete("search", this.lastDisplayed);
+        }
     };
 
     AadPicker.prototype.PageToMaxHeight = function () {
