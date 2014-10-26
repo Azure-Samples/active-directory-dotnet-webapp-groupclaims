@@ -17,9 +17,6 @@
         this.lastDisplayed = null;
         this.lastInput;
         this.isPaging = false;
-        this.selectColor;
-        this.unSelectColor;
-        this.hoverColor;
         this.isResultsOpen = false;
 
         // Constants
@@ -31,22 +28,7 @@
         this.groupLabel = "(group)";
 
         // Activate
-        //this.SearchBoth("");
         this.Listen();
-
-        // Get CSS Properties for Dynamic Color Changes
-        var $temp1 = $("<div></div>").addClass("aadpicker-result-selected").css("display", "none");
-        var $temp2 = $("<div></div>").addClass("aadpicker-result-elem").css("display", "none");
-        var $temp3 = $("<div></div>").addClass("aadpicker-result-hovered").css("display", "none");
-        $temp1.appendTo("body");
-        $temp2.appendTo("body");
-        $temp3.appendTo("body");
-        this.selectColor = $temp1.css("background-color");
-        this.unSelectColor = $temp2.css("background-color");
-        this.hoverColor = $temp3.css("background-color");
-        $temp1.detach();
-        $temp2.detach();
-        $temp3.detach();
     }
 
     AadPicker.prototype.Listen = function () {
@@ -58,41 +40,32 @@
             minLength: 0,
             delay: 200,
             open: function (event, ui) {
-                console.log("open event");
                 picker.isResultsOpen = true;
-                // TODO: picker.Select();
                 if (picker.isPaging) {
                     event.target.scrollTop = 0;
                     picker.isPaging = false;
-                    console.log("Paging Done.")
                 }
                 picker.Page();
             },
             select: function (event, ui) {
-                event.preventDefault();
-            },
-            focus: function (event, ui) {
-                //event.preventDefault();
+                picker.selected = {
+                    objectId: ui.item.objectId,
+                    displayName: ui.item.label,
+                    objectType: ui.item.objectType,
+                };
             },
             close: function (event, ui) {
-                console.log("close event");
                 picker.isResultsOpen = false;
                 picker.lastDisplayed = null;
                 picker.userSkipToken = null;
                 picker.groupSkipToken = null;
                 picker.currentResults = [];
             },
-            //response: function (event, ui) {
-
-            //},
         });
-        //    .data("custom-catcomplete").close = function (event) {
-        //    return false;
-        //}
 
         this.$input.focus(function (event) {
-            if ($(this)[0].value == "" && !picker.isResultsOpen)
-                $(this).catcomplete("search", "");
+            if (!picker.isResultsOpen)
+                $(this).catcomplete("search", this.value);
         });
 
         picker.BindPagingListener();
@@ -159,10 +132,7 @@
     AadPicker.prototype.Search = function (inputValue, callback) {
 
         this.lastInput = inputValue;
-
-        console.log("Searching: " + inputValue);
-        console.log(this.currentResults);
-        console.log("^^Searching...")
+        this.selected = null;
 
         var userQuery = this.ConstructUserQuery(inputValue);
         var groupQuery = this.ConstructGroupQuery(inputValue);
@@ -200,10 +170,6 @@
                         picker.groupSkipToken = null;
                     }
 
-                    console.log("currentResultsResetCheck");
-                    console.log(picker.lastDisplayed);
-                    console.log(inputValue);
-
                     if (picker.lastDisplayed == null || inputValue != picker.lastDisplayed) {
                         picker.currentResults = [];
                     }
@@ -235,9 +201,6 @@
                 }
                 
                 if (inputValue == picker.lastInput) {
-                    picker.selected = null; //TODO
-                    console.log(picker.currentResults);
-                    console.log("^^^Displaying...")
                     picker.lastDisplayed = inputValue;
                     callback(picker.currentResults);
                 }
@@ -252,42 +215,18 @@
 
         this.isPaging = false;
         this.$input.catcomplete("widget").bind("scroll", { picker: this }, this.ScrollHandler);
-
-        //TODO: Unbind?
-        //TODO: Page when not max height & skip tokens exist
-
     };
 
-    //AadPicker.prototype.UnbindPagingListener = function () {
-    //    var $resultsDiv = $(".ui-autocomplete");
-    //    $resultsDiv.unbind("scroll", { picker: this }, this.ScrollHandler);
-    //}
-
     AadPicker.prototype.ScrollHandler = function () {
-
-        picker.Page();
-        
+        picker.Page();   
     };
 
     AadPicker.prototype.Page = function () {
         var $resultsDiv = this.$input.catcomplete("widget");
         if ($resultsDiv.scrollTop() + $resultsDiv.innerHeight() >= $resultsDiv[0].scrollHeight && !picker.isPaging && (this.userSkipToken || this.groupSkipToken)) {
-            console.log("Pre-Page");
-            console.log(this.userSkipToken);
-            console.log(this.groupSkipToken);
-            console.log("Paging...");
             this.isPaging = true;
             this.$input.catcomplete("search", this.lastDisplayed);
         }
-    };
-
-    AadPicker.prototype.PageToMaxHeight = function () {
-
-        //var $resultsUL = this.$input.catcomplete("widget");
-
-
-        //if ($(this).scrollTop() + $(this).innerHeight() >= this.scrollHeight && !picker.isPaging
-
     };
 
     $.widget("custom.catcomplete", $.ui.autocomplete, {
