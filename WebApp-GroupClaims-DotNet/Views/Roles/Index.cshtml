@@ -40,13 +40,13 @@
             var token = "@ViewData["token"]";
             var tenant = "@ViewData["tenant"]";
 
-            var picker = AadPicker(searchUrl, maxResultsPerPage, input, token, tenant);
+            var picker = new AadPicker(searchUrl, maxResultsPerPage, input, token, tenant);
 
             // Submit the selected user/group to be asssigned.
             $("#submit-button").click({ picker: picker }, function () {
-                if (!picker.selected)
+                if (!picker.Selected())
                     return;
-                var form = $("#assign-form").get()[0].elements["id"].value = picker.selected.objectId;
+                var form = $("#assign-form").get()[0].elements["id"].value = picker.Selected().objectId;  
             });
 
         </script>
