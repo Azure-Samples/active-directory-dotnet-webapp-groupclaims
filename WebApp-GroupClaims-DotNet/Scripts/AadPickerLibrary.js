@@ -88,7 +88,7 @@
 
         function Page() {
             var $resultsDiv = $input.catcomplete("widget");
-            if ($resultsDiv.scrollTop() + $resultsDiv.innerHeight() >= $resultsDiv[0].scrollHeight && !picker.isPaging && (userSkipToken || groupSkipToken)) {
+            if (($resultsDiv.scrollTop() + $resultsDiv.innerHeight() >= $resultsDiv[0].scrollHeight) && !isPaging && (userSkipToken || groupSkipToken)) {
                 isPaging = true;
                 $input.catcomplete("search", lastDisplayed);
             }
