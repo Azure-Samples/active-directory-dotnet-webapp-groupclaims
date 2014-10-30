@@ -1,14 +1,14 @@
 WebApp-GroupClaims-DotNet
 ==================================
 
-This sample shows how to build an MVC web application that uses Azure AD for sign-in using the OpenID Connect protocol and uses Azure AD Security Groups for role based access control. This sample uses the OpenID Connect ASP.Net OWIN middleware and ADAL .Net.
+This sample shows how to build an MVC web application that uses Azure AD for sign-in using the OpenID Connect protocol and uses Azure AD Groups for role based access control. This sample uses the OpenID Connect ASP.Net OWIN middleware and ADAL .Net.
 
 For more information about how the protocols work in this scenario and other scenarios, see [Authentication Scenarios for Azure AD](http://go.microsoft.com/fwlink/?LinkId=394414).
 
 ##About The Sample
 If you would like to get started immediately, skip this section and jump to *How To Run The Sample*. 
 
-This MVC 5 web application is a simple "Task Tracker" application that allows users to create, read, update, and delete tasks.  Within the application, access to certain functionality is restricted to different subsets of users. For instance, not every user has the ability to create a task.
+This MVC 5 web application is a simple "Task Tracker" application that allows users to create, read, update, and delete tasks.  Within the application, access to certain functionality is restricted to subsets of users. For instance, not every user has the ability to create a task.
 
 This kind of access control or authorization is implemented using role based access control (RBAC).  When using RBAC, an administrator grants permissions to roles, not to individual users. The administrator can then assign roles to different users and control who has access to what content and functionality.  Our Task Tracker application defines four *Application Roles*:
 - Admin: Has the ability to perform all actions, as well as manage the Application Roles of other users.
@@ -16,13 +16,13 @@ This kind of access control or authorization is implemented using role based acc
 - Approver: Has the ability to change the status of tasks.
 - Observer: Only has the ability to view tasks and their statuses.
 
-It is imporant to make the distinction between these *Application Roles* and the *Directory Roles* that are built into Azure Active Directory.  For a complete list of built-in directory roles, use the [Get-MsolRole](http://technet.microsoft.com/en-us/library/dn194100.aspx) cmdlet.
+It is imporant to make the distinction between these *Application Roles*, *Azure AD Application Roles*, and *Azure AD Directory Roles*.  In this scenario, neither *Azure AD Application Roles* nor *Azure AD Directory Roles* are incorporated.  Instead, the application defines and manages its own set of *Application Roles,* maintaining a record of role assignment on its own.
 
-The application also incorporates group membership for enforcing authorization policies.  In addition to assigning roles directly to users, application Admins can assign roles to Azure AD Security Groups, and assign users to those groups.  In this sample, we manage user membership to Security Groups through the [Azure Management Portal](https://manage.windowsazure.com/), but it can also be accomplished programatically using the [AAD Graph API](http://msdn.microsoft.com/en-us/library/azure/hh974476.aspx).
+The application however *does* incorporate group membership for enforcing authorization policies.  In addition to assigning application roles directly to users, application Admins can assign roles to both Azure AD Security Groups and Distribution Lists.  In this sample, user/group membership is managed via the [Azure Management Portal](https://manage.windowsazure.com/), but it can also be accomplished programatically using the [AAD Graph API](http://msdn.microsoft.com/en-us/library/azure/hh974476.aspx).
 
-In order to persist a record of the Application Roles each user and group has been granted, the Task Tracker application stores the mappings of both users and Security Groups to Application Roles in a database.  In addition, it stores tasks that have been created in the database for future access.
+In order to persist a record of the Application Roles each user and group has been granted, the Task Tracker application stores mappings of both users and groups to Application Roles in a database.  In addition, it stores tasks that have been created in the database for future access.
 
-Using RBAC with custom Application Roles and Azure Active Directory Security Groups, this application securely enforces authorization policies with simple management of users and groups.
+Using RBAC with custom Application Roles, Azure Active Directory Security Groups, and Azure Active Directory Distribution Lists, this application securely enforces authorization policies with simple management of users and groups.
 
 
 
@@ -58,12 +58,30 @@ If you already have a user account with Global Administrator rights in your Azur
 9. For the App ID URI, enter `https://<your_tenant_name>/<your_application_name>`, replacing `<your_tenant_name>` with the name of your Azure AD tenant and `<your_application_name>` with the name you chose above.  Click OK to complete the registration.
 10. While still in the Azure portal, click the Configure tab of your application.
 11. Find the Client ID value and copy it aside, you will need this later when configuring your application.
-12. Create a new key for the application.  Save the configuration so you can view the key value.  Save this aside for when you configure the project in Visual Studio.
-13. In the Permissions to Other Applications configuration section, ensure that "Read Directory Data" is selected under "Application permissions" and that both "Access your organization's directory" and "Enable sign-on and read user's profiles" are selected under "Delegated permissions."  Save the configuration.
-14. Navigate to the Owners tab of your application.
-15. Add at least one user as an application owner. The application assigns any user that is an owner the application role of "Admin."  This allows you to login as an admin initially and begin assigning roles to other users.
+12. Create a new key for the application.  Save the configuration so you can view the key value.  Save this key aside, you'll need it shortly as well.
+13. In the Permissions to Other Applications configuration section, ensure that both "Access your organization's directory" and "Enable sign-on and read user's profiles" are selected under "Delegated permissions" for "Windows Azure Active Directory"  Save the configuration.
 
-### Step 4:  Configure the sample to use your Azure AD tenant
+### Step 4: Configure your application to receive group claims
+
+1. While still in the Configure tab of your application, click "Manage Manifest" in the drawer, and download the existing manifest.
+2. Edit the downloaded manifest by locating the "groupMemebershipClaims" setting, and setting its value to "All" (or to "SecurityGroup" if you are not interested in Distribution Lists).
+3. Save and upload the edited manifest using the same "Manage Manifest" button in the portal.
+```JSON
+{
+  ...
+  "errorUrl": null,
+  "groupMembershipClaims": "All",
+  "homepage": "https://localhost:44322/",
+  ...
+}
+```
+
+### Step 5: Bootstrap your application by creating an Admin user
+
+1. While still in the Azure Portal, navigate to the Owners tab of your application.
+1. Add at least one user as an application owner. The application assigns any user that is an owner the application role of "Admin."  This allows you to login as an admin initially and begin assigning roles to other users.
+
+### Step 6:  Configure the sample to use your Azure AD tenant
 
 1. Open the solution in Visual Studio 2013.
 2. Open the `web.config` file.
@@ -72,9 +90,9 @@ If you already have a user account with Global Administrator rights in your Azur
 5. Find the app key `ida:AppKey` and replace the value with the key for the application from the Azure portal.
 6. If you changed the base URL of the TodoListWebApp sample, find the app key `ida:PostLogoutRedirectUri` and replace the value with the new base URL of the sample.
 
-### Step 5:  Run the sample
+### Step 7:  Run the sample
 
-Clean the solution, rebuild the solution, and run it.  Explore the sample by signing in, navigating to different pages, adding tasks, signing out, etc.  Create several user accounts in the Azure Management Portal, and assign them different roles using the application owner account you created.  Create a Security Group in the Azure Management Portal, add users to it, and again add roles to it using an Admin account.  Explore the differences between each role throughout the application, namely the Tasks and Roles pages.
+Clean the solution, rebuild the solution, and run it!  Explore the sample by signing in, navigating to different pages, adding tasks, signing out, etc.  Create several user accounts in the Azure Management Portal, and assign them different roles using the application owner account you created.  Create a Security Group in the Azure Management Portal, add users to it, and again add roles to it using an Admin account.  Explore the differences between each role throughout the application, namely the Tasks and Roles pages.
 
 ## Deploy this Sample to Azure
 
