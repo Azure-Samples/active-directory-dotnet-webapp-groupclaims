@@ -118,7 +118,7 @@ This section will help you understand the important sections of the sample and h
 1. Open up Visual Studio 2013, and create a new ASP.NET Web Application.  In the New Project dialog, select MVC, and Change Authentication to "No Authentication." Click OK to create your project.
 2. In the project properties, Set SSL Enabled to be True.  Note the SSL URL.
 3. Right click on the Project, select Properties --> Web, and set the Project Url to be the SSL URL from above.
-4. Add the following NuGets to your project: `Microsoft.Owin.Security.OpenIdConnect`, `Microsoft.Owin.Security.Cookies`, `EntityFramework`, `Microsoft.Azure.ActiveDirectory.GraphClient`, `Microsoft.Owin.Host.SystemWeb`, `Microsoft.IdentityModel.Clients.ActiveDirectory`.
+4. Add the following NuGets to your project: `Microsoft.Owin.Security.OpenIdConnect`, `Microsoft.Owin.Security.Cookies`, `EntityFramework`, `Microsoft.Owin.Host.SystemWeb`, `Microsoft.IdentityModel.Clients.ActiveDirectory`.   Add the AAD GraphAPI client library NuGet (`Microsoft.Azure.ActiveDirectory.GraphClient`) version 1.0.3 using the Package Manager Console: `Install-Package Microsoft.Azure.ActiveDirectory.GraphClient -Version 1.0.3`.
 
 #### Enable Users to Sign-In
 
