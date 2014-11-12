@@ -58,22 +58,17 @@ namespace WebAppGroupClaimsDotNet
                             try 
                             {
                                 ClaimsIdentity claimsId = context.AuthenticationTicket.Identity;
-                                List<string> groups = new List<string>();
 
-                                // Check for the existence of a group overage claim (>250 groups).
-                                if (claimsId.FindFirst("_claim_names") != null && (Json.Decode(claimsId.FindFirst("_claim_names").Value)).groups != null)
+                                // Check for the existence of a group overage claim (>250 groups)
+                                if (claimsId.FindFirst("_claim_names") == null || (Json.Decode(claimsId.FindFirst("_claim_names").Value)).groups == null)
                                 {
-                                    // Call the GraphAPI to get the user's groups, instead of using Group Claims
-                                    groups = await GetGroupsFromGraphAPI(context.ProtocolMessage.IdToken, claimsId);
-                                }
-                                else
-                                {
+                                    List<string> groups = new List<string>();
                                     foreach (Claim groupClaim in claimsId.FindAll("groups"))
                                         groups.Add(groupClaim.Value);
-                                }
 
-                                // Assign application roles based on group membership
-                                AssignRoles(claimsId.FindFirst(Globals.ObjectIdClaimType).Value, groups, claimsId);
+                                    // Assign application roles based on group membership
+                                    AssignRoles(claimsId.FindFirst(Globals.ObjectIdClaimType).Value, groups, claimsId);
+                                }
                             }
                             catch (Exception e)
                             {
@@ -93,6 +88,16 @@ namespace WebAppGroupClaimsDotNet
                                 AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority, new TokenDbCache(userObjectId));
                                 AuthenticationResult result = authContext.AcquireTokenByAuthorizationCode(
                                     context.Code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential, ConfigHelper.GraphResourceId);
+
+                                // Check for the existence of a group overage claim (>250 groups).
+                                if (claimsId.FindFirst("_claim_names") != null && (Json.Decode(claimsId.FindFirst("_claim_names").Value)).groups != null)
+                                {
+                                    List<string> groups = new List<string>();
+                                    // Call the GraphAPI to get the user's groups, instead of using Group Claims
+                                    groups = await GetGroupsFromGraphAPI(claimsId);
+                                    // Assign application roles based on group membership
+                                    AssignRoles(userObjectId, groups, claimsId);
+                                }
 
                                 // Assign Admin priviliges to the AAD Application Owners, to bootstrap the application on first run.
                                 await AddOwnerAdminClaim(userObjectId, context.AuthenticationTicket.Identity);
@@ -138,16 +143,16 @@ namespace WebAppGroupClaimsDotNet
         /// <param name="claimsIdentity">The <see cref="ClaimsIdenity" /> object that represents the 
         /// claims-based identity of the currently signed in user and contains thier claims.</param>
         /// <returns>A list of ObjectIDs representing the groups that the user is a member of.</returns>
-        private async Task<List<string>> GetGroupsFromGraphAPI(string id_token, ClaimsIdentity claimsIdentity)
+        private async Task<List<string>> GetGroupsFromGraphAPI(ClaimsIdentity claimsIdentity)
         {
             List<string> groups = new List<string>();
 
             // Acquire the Access Token, using the OnBehalfOf flow to exchange the id_token for an access token
             ClientCredential credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
-            UserAssertion userAssertion = new UserAssertion(id_token);
             AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority,
                 new TokenDbCache(claimsIdentity.FindFirst(Globals.ObjectIdClaimType).Value));
-            AuthenticationResult result = authContext.AcquireToken(ConfigHelper.GraphResourceId, credential, userAssertion);
+            AuthenticationResult result = authContext.AcquireTokenSilent(ConfigHelper.GraphResourceId, credential, 
+                new UserIdentifier(claimsIdentity.FindFirst(Globals.ObjectIdClaimType).Value, UserIdentifierType.UniqueId));
 
             // Get the GraphAPI Group Endpoint for the specific user from the _claim_sources claim in token
             string groupsClaimSourceIndex = (Json.Decode(claimsIdentity.FindFirst("_claim_names").Value)).groups;
