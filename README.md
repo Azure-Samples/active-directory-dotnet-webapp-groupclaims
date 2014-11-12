@@ -1,28 +1,29 @@
 WebApp-GroupClaims-DotNet
 ==================================
 
-This sample shows how to build an MVC web application that uses Azure AD for sign-in using the OpenID Connect protocol and uses Azure AD Groups for role based access control. This sample uses the OpenID Connect ASP.Net OWIN middleware and ADAL .Net.
+This sample shows how to build an MVC web application that uses Azure AD Groups for authorization.  Authorization in Azure AD can also be done with Application Roles, as shown in [WebApp-RoleClaims-DotNet](https://github.com/AzureADSamples/WebApp-RoleClaims-DotNet). This sample uses the OpenID Connect ASP.Net OWIN middleware and ADAL .Net.
 
 For more information about how the protocols work in this scenario and other scenarios, see [Authentication Scenarios for Azure AD](http://go.microsoft.com/fwlink/?LinkId=394414).
 
 ##About The Sample
-If you would like to get started immediately, skip this section and jump to *How To Run The Sample*. 
 
 This MVC 5 web application is a simple "Task Tracker" application that allows users to create, read, update, and delete tasks.  Within the application, access to certain functionality is restricted to subsets of users. For instance, not every user has the ability to create a task.
 
-This kind of access control or authorization is implemented using role based access control (RBAC).  When using RBAC, an administrator grants permissions to roles, not to individual users. The administrator can then assign roles to different users and control who has access to what content and functionality.  Our Task Tracker application defines four *Application Roles*:
+This kind of access control or authorization is implemented using role based access control (RBAC).  When using RBAC, an administrator grants permissions to roles, not to individual users. The administrator can then assign roles to different users and control who has access to what content and functionality.  
+
+This application implements RBAC based on Group Membership, using Azure AD's Group Claims feature.  Another approach is to use Azure AD Application Roles and Role Claims, as shown in [WebApp-RoleClaims-DotNet](https://github.com/AzureADSamples/WebApp-RoleClaims-DotNet).  Azure AD Groups and Application Roles are by no means mutually exclusive - they can be used in tandem to provide even finer grained access control.
+
+It is imporant to make the distinction between these *Application Roles*, *Azure AD Application Roles*, and *Azure AD Directory Roles*.  In this scenario, *Azure AD Application Roles* are not incorporated.  Instead, the application defines and manages its own set of *Application Roles,* maintaining a record of role assignment in its own database.
+
+Our Task Tracker application defines four *Application Roles*:
 - Admin: Has the ability to perform all actions, as well as manage the Application Roles of other users.
 - Writer: Has the ability to create tasks.
 - Approver: Has the ability to change the status of tasks.
 - Observer: Only has the ability to view tasks and their statuses.
 
-It is imporant to make the distinction between these *Application Roles*, *Azure AD Application Roles*, and *Azure AD Directory Roles*.  In this scenario, neither *Azure AD Application Roles* nor *Azure AD Directory Roles* are incorporated.  Instead, the application defines and manages its own set of *Application Roles,* maintaining a record of role assignment on its own.
+Application Admins can assign roles to individual users, as well as to both Azure AD Security Groups and Distribution Lists.  In this sample, user/group membership is managed via the [Azure Management Portal](https://manage.windowsazure.com/), but it can also be accomplished programatically using the [AAD Graph API](http://msdn.microsoft.com/en-us/library/azure/hh974476.aspx).
 
-The application however *does* incorporate group membership for enforcing authorization policies.  In addition to assigning application roles directly to users, application Admins can assign roles to both Azure AD Security Groups and Distribution Lists.  In this sample, user/group membership is managed via the [Azure Management Portal](https://manage.windowsazure.com/), but it can also be accomplished programatically using the [AAD Graph API](http://msdn.microsoft.com/en-us/library/azure/hh974476.aspx).
-
-In order to persist a record of the Application Roles each user and group has been granted, the Task Tracker application stores mappings of both users and groups to Application Roles in a database.  In addition, it stores tasks that have been created in the database for future access.
-
-Using RBAC with custom Application Roles, Azure Active Directory Security Groups, and Azure Active Directory Distribution Lists, this application securely enforces authorization policies with simple management of users and groups.
+Using RBAC with Azure Active Directory Security Groups and Azure Active Directory Distribution Lists, this application securely enforces authorization policies with simple management of users and groups.
 
 
 
@@ -118,7 +119,7 @@ This section will help you understand the important sections of the sample and h
 1. Open up Visual Studio 2013, and create a new ASP.NET Web Application.  In the New Project dialog, select MVC, and Change Authentication to "No Authentication." Click OK to create your project.
 2. In the project properties, Set SSL Enabled to be True.  Note the SSL URL.
 3. Right click on the Project, select Properties --> Web, and set the Project Url to be the SSL URL from above.
-4. Add the following NuGets to your project: `Microsoft.Owin.Security.OpenIdConnect`, `Microsoft.Owin.Security.Cookies`, `EntityFramework`, `Microsoft.Owin.Host.SystemWeb`, `Microsoft.IdentityModel.Clients.ActiveDirectory`.   Add the AAD GraphAPI client library NuGet (`Microsoft.Azure.ActiveDirectory.GraphClient`) version 1.0.3 using the Package Manager Console: `Install-Package Microsoft.Azure.ActiveDirectory.GraphClient -Version 1.0.3`.
+4. Add the following NuGets to your project: `Microsoft.Owin.Security.OpenIdConnect`, `Microsoft.Owin.Security.Cookies`, `EntityFramework`, `Microsoft.Owin.Host.SystemWeb`, `Microsoft.IdentityModel.Clients.ActiveDirectory`.   Add the AAD GraphAPI client library NuGet (`Microsoft.Azure.ActiveDirectory.GraphClient`).
 
 #### Enable Users to Sign-In
 
@@ -151,6 +152,7 @@ This section will help you understand the important sections of the sample and h
 2. Similarly, replace the `Content\Site.css` file with that of the sample.
 3. Create a new empty controller called `ErrorController`, and two views in `Views\Error` called `ShowError.cshtml` and `Reauth.cshtml`.  Copy all of their implementations from the sample - they are simply used for displaying various error messages throughout the application.
 4. Replace the `Controllers\HomeController.cs` and `Views\Home\About.cshtml` files with the sample code.  The About page has been adjusted to provide information about the currently signed-in user.  Feel free to delete the `Views\Home\Contact.cshtml` file.
+5. Create a new class in `Utils` called `GraphHelper.cs`, and copy the implementation from the sample.  This class handles much of the interaction with the GraphAPI, including acquiring tokens for the Graph and getting object information based on object Id's.
 5. Add a new javascript file to `Scripts` called `AadPickerLibrary.js`, and copy the code from the same file in the sample.  This file is a small js library that is used to select users and groups from a tenant in AAD.  In this app, it is used to select users and groups for assignment to roles in the role management page.
 6. Add a new class to the root directory of your project called `AuthorizeAttribute.cs`, and copy its implementation as well.  This class helps the MVC framework differentiate between a request that is Forbidden (user is authenticated, but has not been granted access) and Unauthorized (user is not authenticated), ensuring proper app behavior on page redirects.
 7. Lastly, you need to provide the application with some specifics about your app's registration in the Azure Management Portal.  Create two classes in `Utils` called `Globals.cs` and `ConfigHelper.cs`, and copy in the code from the sample.  These classes pull in various values from the `web.config` file that are needed for signing the user in, acquiring access tokens, calling the AAD Graph API, and so on.  In `web.config`, in the `<appSettings>` tag, create keys for `ida:ClientId`, `ida:AppKey`, `ida:AADInstance`, `ida:Tenant`, `ida:PostLogoutRedirectUri`, `ida:GraphApiVersion` and `ida:GraphUrl` and set the values accordingly.  For the public Azure AD, the value of `ida:AADInstance` is `https://login.windows.net/{0}`, the value of `ida:GraphApiVersion` is `1.22-preview`, and the value of `ida:GraphUrl` is `https://graph.windows.net`.
