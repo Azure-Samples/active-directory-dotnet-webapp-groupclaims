@@ -37,7 +37,7 @@ namespace WebAppGroupClaimsDotNet.Controllers
         /// <returns>Role <see cref="View"/> with inputs to edit application role mappings.</returns>
         [HttpGet]
         [Authorize(Roles = "Admin")]
-        public ActionResult Index()
+        public async Task<ActionResult> Index()
         {
             // Get Existing Mappings from Roles.xml
             ViewBag.Message = "RoleMappings";
@@ -46,52 +46,40 @@ namespace WebAppGroupClaimsDotNet.Controllers
             //Dictionary of <ObjectID, DisplayName> pairs
             var nameDict = new Dictionary<string, string>();
 
-            //Get the Access Token for Calling Graph API
-            AuthenticationContext authContext;
-            AuthenticationResult result = null;
+            // Construct the <ObjectID, DisplayName> Dictionary, Add Lists of Mappings to ViewData
+            // for each type of role
+            List<string> objectIds = new List<string>();
+            foreach (RoleMapping mapping in mappings)
+                objectIds.Add(mapping.ObjectId);
+            
             try
             {
-                string userObjectId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
-                authContext = new AuthenticationContext(ConfigHelper.Authority,
-                    new TokenDbCache(userObjectId));
-                var credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
-                result = authContext.AcquireTokenSilent(ConfigHelper.GraphResourceId, credential,
-                    new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
+                List<User> users = new List<User>();
+                List<Group> groups = new List<Group>();
+                await GraphHelper.GetDirectoryObjects(objectIds, groups, users);
+                foreach (User user in users)
+                    nameDict[user.ObjectId] = user.DisplayName;
+                foreach (Group group in groups)
+                    nameDict[group.ObjectId] = group.DisplayName;
             }
             catch (AdalException e)
             {
                 // If the user doesn't have an access token, they need to re-authorize
                 if (e.ErrorCode == "failed_to_acquire_token_silently")
                     return RedirectToAction("Reauth", "Error", new { redirectUri = Request.Url });
-                
+
                 return RedirectToAction("ShowError", "Error", new { errorMessage = "Error while acquiring token." });
             }
-
-            // Construct the <ObjectID, DisplayName> Dictionary, Add Lists of Mappings to ViewData
-            // for each type of role
-            foreach (RoleMapping mapping in mappings)
+            catch (Exception e)
             {
-                try
-                {
-                    nameDict[mapping.ObjectId] = GetDisplayNameFromObjectId(result.AccessToken, mapping.ObjectId);
-                }
-                catch (GraphException e)
-                {
-                    if (e.HttpStatusCode == HttpStatusCode.Unauthorized)
-                    {
-                        // The user needs to re-authorize.  Show them a message to that effect.
-                        authContext.TokenCache.Clear();
-                        RedirectToAction("Reauth", "Error", new { redirectUri = Request.Url });
-                    }
-                    return RedirectToAction("ShowError", "Error", new { errorMessage = "Error while calling Graph API." });
-                }
+                return RedirectToAction("ShowError", "Error", new { errorMessage = "Error while calling Graph API." });
             }
             
             ViewData["mappings"] = mappings;
             ViewData["nameDict"] = nameDict;
             ViewData["roles"] = Globals.Roles;
             ViewData["host"] = Request.Url.AbsoluteUri;
-            ViewData["token"] = result.AccessToken;
+            ViewData["token"] = GraphHelper.AcquireToken(ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value);
             ViewData["tenant"] = ConfigHelper.Tenant;
             return View();
         }
@@ -111,23 +99,6 @@ namespace WebAppGroupClaimsDotNet.Controllers
             // Check for an input name
             if (formCollection != null && formCollection["id"].Length > 0)
             {
-                //Get the Access Token for Calling Graph API from the cache
-                AuthenticationResult result = null;
-                try
-                {
-                    string userObjectId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
-                    var authContext = new AuthenticationContext(ConfigHelper.Authority,
-                        new TokenDbCache(userObjectId));
-                    var credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
-                    result = authContext.AcquireTokenSilent(ConfigHelper.GraphResourceId, credential,
-                        new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
-                }
-                catch (AdalException e)
-                {
-                        // The user needs to re-authorize.  Show them a message to that effect.
-                        return RedirectToAction("Index", "Roles", null);  
-                }
-
                 RolesDbHelper.AddRoleMapping(formCollection["id"], formCollection["role"]);
             }
 
@@ -184,65 +155,5 @@ namespace WebAppGroupClaimsDotNet.Controllers
                 return Json(new { error = "internal server error" }, JsonRequestBehavior.AllowGet);
             }
         }
-
-        ////////////////////////////////////////////////////////////////////
-        //////// HELPER FUNCTIONS
-        ////////////////////////////////////////////////////////////////////
-        #region HelperFunctions
-        /// <summary>
-        /// Queries the GraphAPI to get the DisplayName of a Group or User from its ObjectID.
-        /// </summary>
-        /// <param name="accessToken">The OpenIDConnect access token used 
-        /// to query the GraphAPI</param>
-        /// <param name="objectId">The ObjectID of the User or Group</param>
-        /// <returns>The DisplayName.</returns>
-        private static string GetDisplayNameFromObjectId(string accessToken, string objectId)
-        {
-            // Setup Graph API connection
-            Guid ClientRequestId = Guid.NewGuid();
-            var graphSettings = new GraphSettings();
-            graphSettings.ApiVersion = ConfigHelper.GraphApiVersion;
-            var graphConnection = new GraphConnection(accessToken, ClientRequestId, graphSettings);
-
-            try
-            {
-                // Get a User by ObjectID
-                return graphConnection.Get<User>(objectId).DisplayName;
-            }
-            catch (GraphException e)
-            {
-                if (e.HttpStatusCode == HttpStatusCode.NotFound)
-                {
-                    try
-                    {
-                        // If the User with ObjectID DNE, Get a group with the ObjectID
-                        return graphConnection.Get<Group>(objectId).DisplayName;
-                    }
-                    catch (GraphException eprime)
-                    {
-                        if (eprime.HttpStatusCode == HttpStatusCode.NotFound)
-                        {
-                            try
-                            {
-                                // If the User and Group with ObjectID, Get a Built-In Directory Role
-                                return graphConnection.Get<Role>(objectId).DisplayName;
-                            }
-                            catch (GraphException eprimeprime)
-                            {
-                                if (eprimeprime.HttpStatusCode == HttpStatusCode.NotFound)
-                                {
-                                    // If neither a User nor a Group nor a Role was found, return null
-                                    return null;
-                                }
-                                else { throw eprimeprime; }
-                            }
-                        }
-                        else { throw eprime; }
-                    }
-                }
-                else { throw e; }
-            }
-        }
-        #endregion
     }
 }

@@ -24,9 +24,11 @@ using System.Net;
 using System.Text;
 
 //The following libraries were defined and added to this sample.
-using WebAppGroupClaimsDotNet.Models;
 using WebAppGroupClaimsDotNet.Utils;
+using WebAppGroupClaimsDotNet.Models;
 using WebAppGroupClaimsDotNet.DAL;
+using Microsoft.Azure.ActiveDirectory.GraphClient.Extensions;
+using System.Web.Helpers;
 
 namespace WebAppGroupClaimsDotNet
 {
@@ -51,57 +53,54 @@ namespace WebAppGroupClaimsDotNet
                     PostLogoutRedirectUri = ConfigHelper.PostLogoutRedirectUri,
                     Notifications = new OpenIdConnectAuthenticationNotifications
                     {
-                        SecurityTokenValidated = context =>
+                        SecurityTokenValidated = async context =>
                         {
-                            ClaimsIdentity claimsId = context.AuthenticationTicket.Identity;
-                            // If we have not received a group claim overage, we can assign the user appropriate roles here.
-                            if (claimsId.FindFirst("_claim_sources") == null)
+                            try 
                             {
-                                List<String> groupMemberships = new List<String>();
-                                foreach (Claim groupClaim in claimsId.FindAll("groups"))
-                                    groupMemberships.Add(groupClaim.Value);
-                                AssignRoles(claimsId.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier").Value, groupMemberships, claimsId);
+                                ClaimsIdentity claimsId = context.AuthenticationTicket.Identity;
+                                List<string> groups = new List<string>();
+
+                                // Check for the existence of a group overage claim (>250 groups).
+                                if (claimsId.FindFirst("_claim_names") != null && (Json.Decode(claimsId.FindFirst("_claim_names").Value)).groups != null)
+                                {
+                                    // Call the GraphAPI to get the user's groups, instead of using Group Claims
+                                    groups = await GetGroupsFromGraphAPI(context.ProtocolMessage.IdToken, claimsId);
+                                }
+                                else
+                                {
+                                    foreach (Claim groupClaim in claimsId.FindAll("groups"))
+                                        groups.Add(groupClaim.Value);
+                                }
+
+                                // Assign application roles based on group membership
+                                AssignRoles(claimsId.FindFirst(Globals.ObjectIdClaimType).Value, groups, claimsId);
+                            }
+                            catch (Exception e)
+                            {
+                                context.HandleResponse();
+                                context.Response.Redirect("/Error/ShowError?errorMessage=" + e.Message + "&signIn=true");
                             }
 
-                            return System.Threading.Tasks.Task.FromResult(0);
+                            return;
                         },
 
                         AuthorizationCodeReceived = async context =>
                         {
                             try
                             {
-                                ClaimsIdentity claimsId = context.AuthenticationTicket.Identity;
                                 ClientCredential credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
-                                string userObjectId = claimsId.FindFirst(Globals.ObjectIdClaimType).Value;
+                                string userObjectId = context.AuthenticationTicket.Identity.FindFirst(Globals.ObjectIdClaimType).Value;
                                 AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority, new TokenDbCache(userObjectId));
                                 AuthenticationResult result = authContext.AcquireTokenByAuthorizationCode(
                                     context.Code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential, ConfigHelper.GraphResourceId);
 
-                                // If we received a group claims overage (too many groups to fit in the token), 
-                                // we need to query for the user's groups using our token for the GraphAPI before assigning roles.
-                                if (claimsId.FindFirst("_claim_sources") != null)
-                                {
-                                    List<String> groupMemberships = await GetGroupsFromGraphAPI(claimsId, userObjectId);
-                                    AssignRoles(userObjectId, groupMemberships, claimsId);
-                                }
-
                                 // Assign Admin priviliges to the AAD Application Owners, to bootstrap the application on first run.
-                                AddOwnerAdminClaim(userObjectId, claimsId);
-                            }
-                            catch (AdalException e)
-                            {
-                                context.HandleResponse();
-                                context.Response.Redirect("/Error/ShowError?errorMessage=Were having trouble signing you in&signIn=true");
-                            }
-                            catch (GraphException e)
-                            {
-                                context.HandleResponse();
-                                context.Response.Redirect("/Error/ShowError?errorMessage=Were having trouble signing you in&signIn=true");
+                                await AddOwnerAdminClaim(userObjectId, context.AuthenticationTicket.Identity);
                             }
                             catch (Exception e)
                             {
                                 context.HandleResponse();
-                                context.Response.Redirect("/Error/ShowError?errorMessage=Were having trouble signing you in&signIn=true");
+                                context.Response.Redirect("/Error/ShowError?errorMessage=" + e.Message + "&signIn=true");
                             }
 
                             return;
@@ -139,25 +138,27 @@ namespace WebAppGroupClaimsDotNet
         /// <param name="claimsIdentity">The <see cref="ClaimsIdenity" /> object that represents the 
         /// claims-based identity of the currently signed in user and contains thier claims.</param>
         /// <returns>A list of ObjectIDs representing the groups that the user is a member of.</returns>
-        private async Task<List<String>> GetGroupsFromGraphAPI(ClaimsIdentity claimsIdentity, string userObjectId)
+        private async Task<List<string>> GetGroupsFromGraphAPI(string id_token, ClaimsIdentity claimsIdentity)
         {
-            // Acquire the Access Token
+            List<string> groups = new List<string>();
+
+            // Acquire the Access Token, using the OnBehalfOf flow to exchange the id_token for an access token
             ClientCredential credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
-            AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority, new TokenDbCache(userObjectId));
-            AuthenticationResult result = authContext.AcquireTokenSilent(ConfigHelper.GraphResourceId, credential,
-                new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
+            UserAssertion userAssertion = new UserAssertion(id_token);
+            AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority,
+                new TokenDbCache(claimsIdentity.FindFirst(Globals.ObjectIdClaimType).Value));
+            AuthenticationResult result = authContext.AcquireToken(ConfigHelper.GraphResourceId, credential, userAssertion);
 
             // Get the GraphAPI Group Endpoint for the specific user from the _claim_sources claim in token
-            string namesJSON = claimsIdentity.FindFirst("_claim_sources").Value;
-            ClaimSource source = JsonConvert.DeserializeObject<ClaimSource>(namesJSON);
-            string requestUrl = String.Format(CultureInfo.InvariantCulture, HttpUtility.HtmlEncode(source.src1.endpoint
-                + "?api-version=" + ConfigHelper.GraphApiVersion));
+            string groupsClaimSourceIndex = (Json.Decode(claimsIdentity.FindFirst("_claim_names").Value)).groups;
+            var groupClaimsSource = (Json.Decode(claimsIdentity.FindFirst("_claim_sources").Value))[groupsClaimSourceIndex];
+            string requestUrl = groupClaimsSource.endpoint + "?api-version=" + ConfigHelper.GraphApiVersion;
 
             // Prepare and Make the POST request
             HttpClient client = new HttpClient();
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", result.AccessToken);
-            StringContent content = new StringContent("{\"securityEnabledOnly\": \"true\"}");
+            StringContent content = new StringContent("{\"securityEnabledOnly\": \"false\"}");
             content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             request.Content = content;
             HttpResponseMessage response = await client.SendAsync(request);
@@ -166,18 +167,21 @@ namespace WebAppGroupClaimsDotNet
             if (response.IsSuccessStatusCode)
             {
                 string responseContent = await response.Content.ReadAsStringAsync();
-                GroupResponse groups = JsonConvert.DeserializeObject<GroupResponse>(responseContent);
+                var groupsResult = (Json.Decode(responseContent)).value;
 
                 // For each Group, add its Object ID to the ClaimsIdentity as a Group Claim
-                foreach (string groupObjectID in groups.value)
-                    claimsIdentity.AddClaim(new Claim("groups", groupObjectID, ClaimValueTypes.String, "AAD-Tenant-Security-Groups"));
-
-                return groups.value;
+                foreach (string groupObjectID in groupsResult) 
+                {
+                    claimsIdentity.AddClaim(new Claim("groups", groupObjectID, ClaimValueTypes.String, "AAD-Tenant-Groups"));
+                    groups.Add(groupObjectID);
+                }
             }
             else
             {
                 throw new WebException();
             }
+
+            return groups;
         }
 
 
@@ -189,59 +193,21 @@ namespace WebAppGroupClaimsDotNet
         /// <param name="claimsId">The <see cref="ClaimsIdenity" /> object that represents the 
         /// claims-based identity of the currently signed in user and contains thier claims.</param>
         /// <param name="userObjectId"> The ObjectId of the signed in user.</param>
-        private void AddOwnerAdminClaim(string userObjectId, ClaimsIdentity claimsId)
+        private async System.Threading.Tasks.Task AddOwnerAdminClaim(string userObjectId, ClaimsIdentity claimsId)
         {
-            // Acquire the Access Token
-            ClientCredential credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
-            AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority, new TokenDbCache(userObjectId));
-            AuthenticationResult result = authContext.AcquireTokenSilent(ConfigHelper.GraphResourceId, credential,
-                new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
-
-            // Setup Graph API connection
-            Guid ClientRequestId = Guid.NewGuid();
-            var graphSettings = new GraphSettings();
-            graphSettings.ApiVersion = ConfigHelper.GraphApiVersion;
-            var graphConnection = new GraphConnection(result.AccessToken, ClientRequestId, graphSettings);
-
-            FilterGenerator filter = new FilterGenerator();
-            filter.QueryFilter = ExpressionHelper.CreateConditionalExpression(typeof(Application),
-                GraphProperty.AppId, new Guid(ConfigHelper.ClientId), ExpressionType.Equal);
-            PagedResults<Application> pagedApp = graphConnection.List<Application>(null, filter);
-
-            PagedResults<GraphObject> owners = graphConnection.GetLinkedObjects(pagedApp.Results[0],
-                LinkProperty.Owners, null);
-            foreach (var owner in owners.Results)
-            {
-                if (owner.ObjectId == userObjectId)
-                    claimsId.AddClaim(new Claim(ClaimTypes.Role, "Admin", ClaimValueTypes.String, "WebAppGroupClaimsDotNet"));
-            }
-            while (!owners.IsLastPage)
-            {
-                owners = graphConnection.GetLinkedObjects(pagedApp.Results[0], LinkProperty.Owners, owners.PageToken);
-                foreach (var owner in owners.Results)
+            ActiveDirectoryClient graphClient = new ActiveDirectoryClient(new Uri(ConfigHelper.GraphServiceRoot), async () => { return GraphHelper.AcquireToken(userObjectId); });
+            IPagedCollection<IApplication> tenantApps = await graphClient.Applications.Where(a => a.AppId.Equals(ConfigHelper.ClientId)).ExecuteAsync();
+            IApplicationFetcher appFetcher = (IApplicationFetcher)tenantApps.CurrentPage[0];
+            IPagedCollection<IDirectoryObject> appOwners = await appFetcher.Owners.ExecuteAsync();
+            do {
+                foreach (IDirectoryObject owner in appOwners.CurrentPage.ToList())
                 {
                     if (owner.ObjectId == userObjectId)
-                        claimsId.AddClaim(new Claim(ClaimTypes.Role, "Admin", ClaimValueTypes.String, "WebAppGroupClaimsDotNet"));
+                        claimsId.AddClaim(new Claim(ClaimTypes.Role, "Admin", ClaimValueTypes.String, "WebApp_RoleClaims_DotNet"));
                 }
+                appOwners = await appOwners.GetNextPageAsync();
             }
-        }
-
-        // These 3 classes are simply for Deserializing JSON
-        // TODO: How to make reference from groups-->src1-->value
-        private class ClaimSource
-        {
-            public Endpoint src1 { get; set; }
-
-            public class Endpoint
-            {
-                public string endpoint { get; set; }
-            }
-        }
-
-        private class GroupResponse
-        {
-            public string metadata { get; set; }
-            public List<string> value { get; set; }
+            while (appOwners != null);
         }
         #endregion
     }

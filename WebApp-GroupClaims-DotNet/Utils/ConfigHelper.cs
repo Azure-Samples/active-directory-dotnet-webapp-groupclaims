@@ -36,5 +36,7 @@ namespace WebAppGroupClaimsDotNet.Utils
         internal static string Authority { get { return authority; } }
         internal static string AadInstance { get { return aadInstance; } }
         internal static string PostLogoutRedirectUri { get { return postLogoutRedirectUri; } }
+        internal static string GraphServiceRoot { get { return graphResourceId + '/' + tenant; } }
+
     }
 }

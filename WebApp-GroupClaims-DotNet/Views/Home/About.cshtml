@@ -3,16 +3,55 @@
 }
 <h2>@ViewBag.Title.</h2>
 <h3>Your Current Application Roles:</h3>
-<ul>
-    @foreach (string str in (List<string>)ViewData["myroles"])
+<table class="table table-bordered table-striped">
+    <tr>
+        <th>Name</th>
+    </tr>
+    @foreach (string str in (List<string>)ViewData["myRoles"])
     {
-        <li>@str</li>
+        <tr>
+            <td>@str</td>
+        </tr>
     }
-</ul>
+</table>
+
 <h3>Your Current Groups:</h3>
-<ul>
-    @foreach (string str in (List<string>)ViewData["mygroups"])
+@if ((bool)ViewData["overageOccurred"])
+{ 
+    <h4 style="color:blue">Group Membership Acquired via GraphAPI Calls. </h4>
+}
+else
+{
+    <h4 style="color:blue">Group Membership Acquired via Group Claims. </h4>
+}
+<table class="table table-bordered table-striped">
+    <tr>
+        <th>Name</th>
+        <th>ObjectID</th>
+    </tr>
+    
+    @foreach (Microsoft.Azure.ActiveDirectory.GraphClient.Group group in (List<Microsoft.Azure.ActiveDirectory.GraphClient.Group>)ViewData["myGroups"])
     {
-        <li>@str</li>
+        <tr>
+            <td>@group.DisplayName</td>
+            <td>@group.ObjectId</td>
+        </tr>
     }
-</ul>
+    
+</table>
+
+<h3>Your Current Directory Roles:</h3>
+<table class="table table-bordered table-striped">
+    <tr>
+        <th>Name</th>
+        <th>ObjectID</th>
+    </tr>
+
+    @foreach (Microsoft.Azure.ActiveDirectory.GraphClient.DirectoryRole role in (List<Microsoft.Azure.ActiveDirectory.GraphClient.DirectoryRole>)ViewData["myDirectoryRoles"])
+    {
+        <tr>
+            <td>@role.DisplayName</td>
+            <td>@role.ObjectId</td>
+        </tr>
+    }
+</table>
