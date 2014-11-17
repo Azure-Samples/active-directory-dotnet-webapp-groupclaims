@@ -83,6 +83,7 @@ namespace WebAppGroupClaimsDotNet
                         {
                             try
                             {
+                                ClaimsIdentity claimsId = context.AuthenticationTicket.Identity;
                                 ClientCredential credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
                                 string userObjectId = context.AuthenticationTicket.Identity.FindFirst(Globals.ObjectIdClaimType).Value;
                                 AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority, new TokenDbCache(userObjectId));
