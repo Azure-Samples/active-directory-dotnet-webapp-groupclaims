@@ -1,5 +1,6 @@
 WebApp-GroupClaims-DotNet
 ==================================
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/AzureADSamples/WebApp-GroupClaims-DotNet?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 This sample shows how to build an MVC web application that uses Azure AD Groups for authorization.  Authorization in Azure AD can also be done with Application Roles, as shown in [WebApp-RoleClaims-DotNet](https://github.com/AzureADSamples/WebApp-RoleClaims-DotNet). This sample uses the OpenID Connect ASP.Net OWIN middleware and ADAL .Net.
 
