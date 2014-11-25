@@ -1,0 +1,79 @@
+﻿@{
+    ViewBag.Title = "Share";
+}
+
+@if (User.Identity.IsAuthenticated)
+{
+    using (Html.BeginForm("Share", "Tasks", FormMethod.Post, new { id = "share-form" }))
+    {
+        <button name="delete" value="" style="display:none"></button>
+        <input type="text" name="taskId" value="@ViewData["taskId"]" hidden />
+        
+        <div>
+            <h3>@ViewData["taskText"]</h3>
+            <input id="hidden-input" type="hidden" name="objectId" />
+            <input id="hidden-input" type="hidden" name="displayName" />
+            <p class="assign-role-label">Search for Users/Groups:</p>
+            <input id="search" type="text" name="input">
+            <button name="shareTasks" value="Share Task" id="submit-button">Share Task</button>
+        </div>
+        <script>
+            // People/Group Picker Code
+            var maxResultsPerPage = 14;
+            var searchUrl = window.location.protocol + "//" + window.location.host + "/GraphProxy/Search";
+            var input = document.getElementById("search");
+            var token = "@ViewData["token"]";
+            var tenant = "@ViewData["tenant"]";
+
+            var picker = new AadPicker(searchUrl, maxResultsPerPage, input, token, tenant);
+
+            // Submit the selected user/group to be asssigned.
+            $("#submit-button").click({ picker: picker }, function () {
+                if (!picker.Selected())
+                    return;
+                var $form = $("#share-form");
+                $form.get()[0].elements["objectId"].value = picker.Selected().objectId;
+                $form.get()[0].elements["displayName"].value = picker.Selected().displayName;
+            });
+
+        </script>
+
+        
+    
+        <div class="container share-list" style="padding-top:10px">
+            <div class="row">
+                <div class="col-md-2"><h4>Shared With</h4></div>
+                <div class="col-md-5"><h4>Object Id</h4></div>
+                <div class="col-md-1"></div>
+                <div class="col-md-4"></div>
+            </div>
+
+
+            @foreach (WebAppGroupClaimsDotNet.Models.AadObject share in (List<WebAppGroupClaimsDotNet.Models.AadObject>)ViewData["shares"])
+            {
+                if (share.AadObjectID != (string)ViewData["userId"])
+                { 
+                    <div class="row">
+                        <div class="col-md-2">
+                            @share.DisplayName
+                        </div>
+                        <div class="col-md-5">
+                            @share.AadObjectID
+                        </div>
+                        <div class="col-md-1">
+                            <button name="delete" value="@share.AadObjectID" class="remove-button"><a class="share-link">Remove</a></button>
+                        </div>
+                        <div class="col-md-4"></div>
+                    </div>
+                }
+            }
+                    
+
+        </div>
+
+
+    <a href="/Tasks/Index">&lt;&lt; Return to Tasks</a>
+
+    }
+}
+

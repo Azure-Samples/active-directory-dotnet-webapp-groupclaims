@@ -2,18 +2,6 @@
     ViewBag.Title = "About";
 }
 <h2>@ViewBag.Title.</h2>
-<h3>Your Current Application Roles:</h3>
-<table class="table table-bordered table-striped">
-    <tr>
-        <th>Name</th>
-    </tr>
-    @foreach (string str in (List<string>)ViewData["myRoles"])
-    {
-        <tr>
-            <td>@str</td>
-        </tr>
-    }
-</table>
 
 <h3>Your Current Groups:</h3>
 @if ((bool)ViewData["overageOccurred"])

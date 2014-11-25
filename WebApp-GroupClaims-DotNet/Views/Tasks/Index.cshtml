@@ -2,86 +2,91 @@
     ViewBag.Title = "Tasks";
 }
 
-<h2>TaskTracker</h2>
+<h2>Tasks</h2>
 
 <p>
-    This page demonstrates the use of the User.IsInRole() method to display appropriate UI components
-    based on the currently signed-in user.  On this page, Observers can only read the tasks and their
-    statuses.  Writers can add new tasks, but cannot change the status of an existing task.  Approvers
-    can change the status of an existing task, but cannot add a new task.  Admins can peform all actions,
-    including deleting tasks altogether.
+    This page uses Group Claims to determine which tasks have been shared with the user.  
+    Tasks that the user created can be shared with other users and groups.  
+    Tasks that have been shared with the user display the owner's name.
 </p>
 
 @if (User.Identity.IsAuthenticated)
 {
-    using (Html.BeginForm("TaskSubmit", "Tasks", FormMethod.Post))
+    using (Html.BeginForm("TaskSubmit", "Tasks", FormMethod.Post, new { id = "share-form" }))
     {
-        <div class="container" style="padding-top:10px">
-            <div class="row"> 
-                <div class="col-md-2"><h4>Task</h4></div>
-                <div class="col-md-2"><h4>Status</h4></div>
-                @if (User.IsInRole("Admin"))
-                {
-                    <div class="col-md-2"><h4>Delete</h4></div>
-                }
-            </div>
+        <button name="delete" value="" style="display:none"></button>
 
-
-            @foreach (WebAppGroupClaimsDotNet.Models.Task task in (List<WebAppGroupClaimsDotNet.Models.Task>)ViewData["tasks"])
-            {
+            <div class="container" style="padding-top:10px">
                 <div class="row">
-                    <div class="col-md-2">@task.TaskText</div>
-                    @if (User.IsInRole("Approver") || User.IsInRole("Admin"))
-                    {
-                        <div class="col-md-2">
-                            <select name="@task.TaskID">
+                    <div class="col-md-4"><h4>Task</h4></div>
+                    <div class="col-md-3"><h4>Status</h4></div>
+                    <div class="col-md-3"><h4>Share</h4></div>
+                    <div class="col-md-2"><h4></h4></div>
+                </div>
+
+
+                @foreach (WebAppGroupClaimsDotNet.Models.Task task in (List<WebAppGroupClaimsDotNet.Models.Task>)ViewData["tasks"])
+                {
+                    <div class="row task">
+                        <div class="col-md-4">
+                            <div class="task-text">
+                                @task.TaskText
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="task-id:@task.TaskID" class="task-status">
                                 @foreach (string status in WebAppGroupClaimsDotNet.Utils.Globals.Statuses)
+                            {
+                                if (status == task.Status)
                                 {
-                                    if (status == task.Status)
-                                    {
-                                        <option value="@status" selected>@status</option>
-                                    }
-                                    else
-                                    {
-                                        <option value="@status">@status</option>
-                                    }
+                                    <option value="@status" selected class="task-status">@status</option>
                                 }
+                                else
+                                {
+                                    <option value="@status" class="task-status">@status</option>
+                                }
+                            }
                             </select>
                         </div>
-                    }
-                    else
-                    {
-                        <div class="col-md-2">@task.Status</div>
-                    }
-                    @if (User.IsInRole("Admin"))
-                    {
-                        <div class="col-md-1"><input type="checkbox" name="delete" value="@task.TaskID" /></div>
-                        <div class="col-md-5"></div>
-                    }
-                    else
-                    {
-                        <div class="col-md-8"></div>
-                    }
-                </div>
-            }
-        </div>
-
-        <div style="padding-top:30px">
-            @if (User.IsInRole("Admin") || User.IsInRole("Writer") || User.IsInRole("Approver"))
-            {
-                <div>
-                    @if (User.IsInRole("Admin") || User.IsInRole("Writer"))
-                    {
-                        <div style="float:left;padding-right:10px;display:inline-block">
-                            <div style="float:left;padding-right:10px">Add New Task:</div>
-                            <div style="float:left"><input type="text" name="newtask"></div>
+                        <div class="col-md-3">
+                            @if (task.Creator == (string)ViewData["userId"])
+                        {
+                                <div class="task-owner">
+                                    <a href="/Tasks/Share?id=@task.TaskID" class="share-link">
+                                        @(task.SharedWith.Count - 1) Share(s)
+                                    </a>
+                                </div>
+                        }
+                        else
+                        {
+                                <div class="task-owner">Owner: @task.CreatorName</div>
+                        }
                         </div>
-                    }
-
-                    <input type="submit" value="UpdateTasks" />
-                </div>
+                        <div class="col-md-2">
+                            <div>
+                                @if (task.Creator == (string)ViewData["userId"])
+                            {
+                                    <button name="delete" value="@task.TaskID" class="remove-button"><a class="share-link">Delete</a></button>
+                            }
+                            </div>
+                        </div>
+                    </div>
             }
-        </div>
-    }
-}
+
+                <div class="row task-actions">
+                    <div class="col-md-4 add-task">
+                        <div class="add-task-input">
+                            <input type="text" name="newTask" class="add-task-input-box">
+                        </div>
+                        <button name="addTask" value="Add Task">Add Task</button>
+                    </div>
+                    <div class="col-md-3 update-tasks">
+                        <button name="updateTasks" value="Update Tasks">Update Tasks</button>
+                    </div>
+                    <div class="col-md-3"></div>
+                    <div class="col-md-2"></div>
+                </div>
+            </div>
+            }
+            }
 

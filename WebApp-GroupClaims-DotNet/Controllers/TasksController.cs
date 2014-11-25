@@ -1,72 +1,105 @@
 ﻿using System;
 using System.Web.Mvc;
+
+//The following libraries were added to the sample
+using System.Linq;
+using System.Collections.Generic;
+using System.Security.Claims;
+using System.Threading.Tasks;
+
+//The following libraries were defined and added to this sample.
 using WebAppGroupClaimsDotNet.DAL;
 using WebAppGroupClaimsDotNet.Utils;
-//The following libraries were defined and added to this sample.
+
 
 namespace WebAppGroupClaimsDotNet.Controllers
 {
     public class TasksController : Controller
     {
-        /// <summary>
-        /// Lists Out the Tasks stored in the database.  RBAC to editing tasks is controlled by 
-        /// the View and other controller actions.  Requires the user has at least one
-        /// of the application roles to view tasks.
-        /// </summary>
-        /// <returns>The Tasks Page.</returns>
         [HttpGet]
-        [Authorize(Roles = "Admin, Observer, Writer, Approver")]
-        public ActionResult Index()
+        [Authorize]
+        public async Task<ActionResult> Index()
         {
-            ViewBag.Message = "Tasks";
-            ViewData["tasks"] = TasksDbHelper.GetAllTasks();
+            try
+            {
+                // Get All Tasks User Can View
+                ClaimsIdentity userClaimsId = ClaimsPrincipal.Current.Identity as ClaimsIdentity;
+                List<string> userGroupsAndId = await ClaimHelper.GetGroups(userClaimsId);
+                string userObjectId = userClaimsId.FindFirst(Globals.ObjectIdClaimType).Value;
+                userGroupsAndId.Add(userObjectId);
+                ViewData["tasks"] = TasksDbHelper.GetAllTasks(userGroupsAndId);
+                ViewData["userId"] = userObjectId;
+                return View();
+            }
+            catch (Exception e)
+            {
+                // Catch Both ADAL Exceptions and Web Exceptions
+                return RedirectToAction("ShowError", "Error", new { errorMessage = e.Message });
+            }
+        }
+
+        [HttpPost]
+        [Authorize]
+        public ActionResult TaskSubmit(FormCollection formCollection)
+        {
+            // Create a new task
+            if (formCollection["newTask"] != null && formCollection["newTask"].Length != 0)
+            {
+                TasksDbHelper.AddTask(formCollection["newTask"],
+                    ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value,
+                    ClaimsPrincipal.Current.FindFirst(Globals.GivennameClaimType).Value + ' '
+                    + ClaimsPrincipal.Current.FindFirst(Globals.SurnameClaimType).Value);
+            }
+
+            // Change status of existing task
+            if (formCollection["updateTasks"] != null)
+            {
+                foreach (string key in formCollection.Keys)
+                {
+                    if (key.StartsWith("task-id:"))
+                        TasksDbHelper.UpdateTask(Convert.ToInt32(key.Substring(key.IndexOf(':') + 1)), formCollection[key]);
+                }
+            }
+
+            // Delete a Task
+            if (formCollection["delete"] != null && formCollection["delete"].Length > 0)
+                TasksDbHelper.DeleteTask(Convert.ToInt32(formCollection["delete"]));
+            
+            return RedirectToAction("Index", "Tasks");
+        }
+
+        [HttpGet]
+        [Authorize]
+        public ActionResult Share(string id)
+        {
+            // Values Needed for the People Picker
+            ViewData["tenant"] = ConfigHelper.Tenant;
+            ViewData["token"] = GraphHelper.AcquireToken(ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value);
+
+            // Get the task details
+            WebAppGroupClaimsDotNet.Models.Task task = TasksDbHelper.GetTask(Convert.ToInt32(id));
+            if (task == null)
+                RedirectToAction("ShowError", "Error", new { message = "Task Not Found in DB." });
+            ViewData["shares"] = task.SharedWith.ToList();
+            ViewData["taskText"] = task.TaskText;
+            ViewData["taskId"] = task.TaskID;
+            ViewData["userId"] = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
             return View();
         }
 
-        
-        /// <summary>
-        /// Add a new task to the database or Update the Status of an Existing Task.  Requires that
-        /// the user has a application role of Admin, Writer, or Approver, and only allows certain actions based
-        /// on which role(s) the user has been granted.
-        /// </summary>
-        /// <param name="formCollection">The user input including task name and status.</param>
-        /// <returns>A Redirect to the Tasks Page.</returns>
         [HttpPost]
-        [Authorize(Roles = "Admin, Writer, Approver")]
-        public ActionResult TaskSubmit(FormCollection formCollection)
+        [Authorize]
+        public ActionResult Share(int taskId, string objectId, string displayName, string delete, string shareTasks)
         {
-            if (User.IsInRole("Admin") || User.IsInRole("Writer"))
-            {
-                // Add A New task to Tasks.xml
-                if (formCollection["newTask"] != null && formCollection["newTask"].Length != 0)
-                    TasksDbHelper.AddTask(formCollection["newTask"]);
-            }
+            // If the share button was clicked, share the task with the user or group
+            if (shareTasks != null && objectId != null && displayName != null)
+                TasksDbHelper.AddShare(taskId, objectId, displayName);
 
-            if (User.IsInRole("Admin") || User.IsInRole("Approver"))
-            {
-                // Change status of existing task
-                foreach (string key in formCollection.Keys)
-                { 
-                    if (key != "newtask" && key != "delete")
-                        TasksDbHelper.UpdateTask(Convert.ToInt32(key), formCollection[key]);
-                }
-            }
+            // If a delete button was clicked, remove the share from the task
+            if (delete != null && delete.Length > 0)
+                TasksDbHelper.DeleteShare(taskId, delete);
 
-            if (User.IsInRole("Admin"))
-            { 
-                // Delete a Task
-                foreach (string key in formCollection.Keys)
-                { 
-                    if (key == "delete" && formCollection[key] != null && formCollection[key].Length > 0)
-                    {
-                        string[] toDelete = formCollection[key].Split(',');
-                        foreach (string id in toDelete) {
-                            TasksDbHelper.DeleteTask(Convert.ToInt32(id));
-                        }
-                    }
-                }
-            }
-            return RedirectToAction("Index", "Tasks");
+            return RedirectToAction("Share", new { id = taskId });
         }
     }
 }
