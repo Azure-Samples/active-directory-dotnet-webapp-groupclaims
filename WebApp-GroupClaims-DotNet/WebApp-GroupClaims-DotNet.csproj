@@ -187,7 +187,6 @@
     <Compile Include="App_Start\FilterConfig.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="App_Start\Startup.Auth.cs" />
-    <Compile Include="AuthorizeAttribute.cs" />
     <Compile Include="Controllers\AccountController.cs" />
     <Compile Include="Controllers\ErrorController.cs" />
     <Compile Include="Controllers\GraphProxyController.cs" />
@@ -199,31 +198,6 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
-    <Compile Include="Migrations\201411080214092_InitialCreate.cs" />
-    <Compile Include="Migrations\201411080214092_InitialCreate.Designer.cs">
-      <DependentUpon>201411080214092_InitialCreate.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\201411220003124_init.cs" />
-    <Compile Include="Migrations\201411220003124_init.Designer.cs">
-      <DependentUpon>201411220003124_init.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\201411220033243_two.cs" />
-    <Compile Include="Migrations\201411220033243_two.Designer.cs">
-      <DependentUpon>201411220033243_two.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\201411220040063_three.cs" />
-    <Compile Include="Migrations\201411220040063_three.Designer.cs">
-      <DependentUpon>201411220040063_three.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\201411220152454_four.cs" />
-    <Compile Include="Migrations\201411220152454_four.Designer.cs">
-      <DependentUpon>201411220152454_four.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\201411220252439_five.cs" />
-    <Compile Include="Migrations\201411220252439_five.Designer.cs">
-      <DependentUpon>201411220252439_five.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AadObject.cs" />
     <Compile Include="Models\Task.cs" />
     <Compile Include="Models\TokenCacheEntry.cs" />
@@ -294,26 +268,6 @@
   <ItemGroup>
     <Content Include="packages.config" />
     <None Include="Project_Readme.html" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Migrations\201411080214092_InitialCreate.resx">
-      <DependentUpon>201411080214092_InitialCreate.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\201411220003124_init.resx">
-      <DependentUpon>201411220003124_init.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\201411220033243_two.resx">
-      <DependentUpon>201411220033243_two.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\201411220040063_three.resx">
-      <DependentUpon>201411220040063_three.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\201411220152454_four.resx">
-      <DependentUpon>201411220152454_four.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Migrations\201411220252439_five.resx">
-      <DependentUpon>201411220252439_five.cs</DependentUpon>
-    </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
