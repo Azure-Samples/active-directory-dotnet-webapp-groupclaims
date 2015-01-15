@@ -29,11 +29,7 @@ From your shell or command line:
 
 `git clone https://github.com/AzureADSamples/WebApp-GroupClaims-DotNet.git`
 
-### Step 2:  Create a user account in your Azure Active Directory tenant
-
-If you already have a user account with Global Administrator rights in your Azure Active Directory tenant, you can skip to the next step.  This sample will not work with a Microsoft account, so if you signed in to the Azure portal with a Microsoft account and have never created a user account in your directory before, you need to do so now, and ensure it has the Global Administrator Directory Role.  If you create an account and want to use it to sign-in to the Azure portal, don't forget to add the user account as a co-administrator of your Azure subscription.
-
-### Step 3:  Register the sample with your Azure Active Directory tenant
+### Step 2:  Register the sample with your Azure Active Directory tenant
 
 1. Sign in to the [Azure management portal](https://manage.windowsazure.com).
 2. Click on Active Directory in the left hand nav.
@@ -49,7 +45,7 @@ If you already have a user account with Global Administrator rights in your Azur
 12. Create a new key for the application.  Save the configuration so you can view the key value.  Save this key aside, you'll need it shortly as well.
 13. In the Permissions to Other Applications configuration section, ensure that both "Access your organization's directory" and "Enable sign-on and read user's profiles" are selected under "Delegated permissions" for "Windows Azure Active Directory"  Save the configuration.
 
-### Step 4: Configure your application to receive group claims
+### Step 3: Configure your application to receive group claims
 
 1. While still in the Configure tab of your application, click "Manage Manifest" in the drawer, and download the existing manifest.
 2. Edit the downloaded manifest by locating the "groupMemebershipClaims" setting, and setting its value to "All" (or to "SecurityGroup" if you are not interested in Distribution Lists).
@@ -64,7 +60,7 @@ If you already have a user account with Global Administrator rights in your Azur
 }
 ```
 
-### Step 5:  Configure the sample to use your Azure AD tenant
+### Step 4:  Configure the sample to use your Azure AD tenant
 
 1. Open the solution in Visual Studio 2013.
 2. Open the `web.config` file.
@@ -73,7 +69,7 @@ If you already have a user account with Global Administrator rights in your Azur
 5. Find the app key `ida:AppKey` and replace the value with the key for the application from the Azure portal.
 6. If you changed the base URL of the TodoListWebApp sample, find the app key `ida:PostLogoutRedirectUri` and replace the value with the new base URL of the sample.
 
-### Step 6:  Run the sample
+### Step 5:  Run the sample
 
 Clean the solution, rebuild the solution, and run it!  Explore the sample by signing in, navigating to different pages, adding tasks, signing out, etc.  Create several user accounts in the Azure Management Portal, and create tasks as each different user.  Create a Security Group in the Azure Management Portal, add users to it, and share tasks with the security group.
 
