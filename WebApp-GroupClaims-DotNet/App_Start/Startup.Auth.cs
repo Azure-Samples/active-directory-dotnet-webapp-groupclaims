@@ -33,19 +33,19 @@ namespace WebAppGroupClaimsDotNet
                     {
                         AuthorizationCodeReceived = context =>
                         {
-                            try
-                            {
-                                ClientCredential credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
-                                string userObjectId = context.AuthenticationTicket.Identity.FindFirst(Globals.ObjectIdClaimType).Value;
-                                AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority, new TokenDbCache(userObjectId));
-                                AuthenticationResult result = authContext.AcquireTokenByAuthorizationCode(
-                                    context.Code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential, ConfigHelper.GraphResourceId);
-                            }
-                            catch (AdalException e)
-                            {
-                                context.HandleResponse();
-                                context.Response.Redirect("/Error/ShowError?errorMessage=" + e.Message + "&signIn=true");
-                            }
+                            ClientCredential credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
+                            string userObjectId = context.AuthenticationTicket.Identity.FindFirst(Globals.ObjectIdClaimType).Value;
+                            AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority, new TokenDbCache(userObjectId));
+                            AuthenticationResult result = authContext.AcquireTokenByAuthorizationCode(
+                                context.Code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential, ConfigHelper.GraphResourceId);
+
+                            return Task.FromResult(0);
+                        },
+
+                        AuthenticationFailed = context =>
+                        {
+                            context.HandleResponse();
+                            context.Response.Redirect("/Error/ShowError?signIn=true&errorMessage=" + context.Exception.Message);
                             return Task.FromResult(0);
                         }
                     }
