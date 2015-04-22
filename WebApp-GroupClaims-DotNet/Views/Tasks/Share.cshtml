@@ -31,6 +31,8 @@
 
             // Validate Search Term, Set Form Values
             function preProcessForm() {
+                if (document.activeElement['name'] == 'delete')
+                    return true;
                 if (!picker.Selected()) {
                     $("#validation-error").show();
                     return false;
