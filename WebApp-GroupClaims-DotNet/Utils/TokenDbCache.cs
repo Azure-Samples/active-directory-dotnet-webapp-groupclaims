@@ -35,12 +35,8 @@ namespace WebAppGroupClaimsDotNet.Utils
         {
             base.Clear();
 
-            var tokens = from e in db.TokenCacheEntries
-                         where (e.userObjId == userObjId)
-                         select e;
-
-            foreach (var cacheEntry in tokens.ToList())
-                db.TokenCacheEntries.Remove(cacheEntry);
+            var entry = db.TokenCacheEntries.FirstOrDefault(e => e.userObjId == userObjId);
+            db.TokenCacheEntries.Remove(entry);
             db.SaveChanges();
         }
 
@@ -54,19 +50,13 @@ namespace WebAppGroupClaimsDotNet.Utils
                 Cache = db.TokenCacheEntries.FirstOrDefault(c => c.userObjId == userObjId);
             }
             else
-            {   // retrieve last write from the DB
-                var status = from e in db.TokenCacheEntries
-                             where (e.userObjId == userObjId)
-                             select new
-                             {
-                                 LastWrite = e.LastWrite
-                             };
-                // if the in-memory copy is older than the persistent copy
-                if (status.First().LastWrite > Cache.LastWrite)
-                //// read from from storage, update in-memory copy
-                {
-                    Cache = db.TokenCacheEntries.FirstOrDefault(c => c.userObjId == userObjId);
-                }
+            {   
+                // retrieve last write from the DB
+                var dbCache = db.TokenCacheEntries.FirstOrDefault(c => c.userObjId == userObjId);
+                             
+                // if the in-memory copy is older than the persistent copy, update the in-memory copy
+                if (dbCache.LastWrite > Cache.LastWrite)
+                    Cache = dbCache;
             }
             this.Deserialize((Cache == null) ? null : Cache.cacheBits);
         }
@@ -77,12 +67,19 @@ namespace WebAppGroupClaimsDotNet.Utils
             // if state changed
             if (this.HasStateChanged)
             {
-                Cache = new TokenCacheEntry
+                // retrieve last write from the DB
+                Cache = db.TokenCacheEntries.FirstOrDefault(e => e.userObjId == userObjId);
+                
+                if (Cache == null)
                 {
-                    userObjId = userObjId,
-                    cacheBits = this.Serialize(),
-                    LastWrite = DateTime.Now
-                };
+                    Cache = new TokenCacheEntry
+                    {
+                        userObjId = userObjId,
+                    };
+                }
+                Cache.LastWrite = DateTime.Now;
+                Cache.cacheBits = this.Serialize();
+                
                 //// update the DB and the lastwrite                
                 db.Entry(Cache).State = Cache.TokenCacheEntryID == 0 ? EntityState.Added : EntityState.Modified;                
                 db.SaveChanges();

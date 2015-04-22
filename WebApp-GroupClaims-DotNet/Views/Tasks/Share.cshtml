@@ -4,7 +4,7 @@
 
 @if (User.Identity.IsAuthenticated)
 {
-    using (Html.BeginForm("Share", "Tasks", FormMethod.Post, new { id = "share-form" }))
+    using (Html.BeginForm("Share", "Tasks", FormMethod.Post, new { id = "share-form", onsubmit = "return preProcessForm()" }))
     {
         <button name="delete" value="" style="display:none"></button>
         <input type="text" name="taskId" value="@ViewData["taskId"]" hidden />
@@ -16,24 +16,33 @@
             <p class="assign-role-label">Search for Users/Groups:</p>
             <input id="search" type="text" name="input">
             <button name="shareTasks" value="Share Task" id="submit-button">Share Task</button>
+            <div style="height:20px">
+                <p id="validation-error" style="color:red" hidden>Please select a user or group.</p>
+            </div>
         </div>
         <script>
             // People/Group Picker Code
             var maxResultsPerPage = 14;
-            var searchUrl = window.location.protocol + "//" + window.location.host + "/GraphProxy/Search";
             var input = document.getElementById("search");
             var token = "@ViewData["token"]";
             var tenant = "@ViewData["tenant"]";
 
-            var picker = new AadPicker(searchUrl, maxResultsPerPage, input, token, tenant);
+            var picker = new AadPicker(maxResultsPerPage, input, token, tenant);
 
-            // Submit the selected user/group to be asssigned.
-            $("#submit-button").click({ picker: picker }, function () {
-                if (!picker.Selected())
-                    return;
+            // Validate Search Term, Set Form Values
+            function preProcessForm() {
+                if (!picker.Selected()) {
+                    $("#validation-error").show();
+                    return false;
+                }
                 var $form = $("#share-form");
                 $form.get()[0].elements["objectId"].value = picker.Selected().objectId;
                 $form.get()[0].elements["displayName"].value = picker.Selected().displayName;
+            }
+
+            // Hide Error Message on Re-Focus
+            $("#search").focus(function () {
+                $("#validation-error").hide();
             });
 
         </script>

@@ -92,7 +92,7 @@ namespace WebAppGroupClaimsDotNet.Controllers
         public ActionResult Share(int taskId, string objectId, string displayName, string delete, string shareTasks)
         {
             // If the share button was clicked, share the task with the user or group
-            if (shareTasks != null && objectId != null && displayName != null)
+            if (shareTasks != null && objectId != null && objectId != string.Empty && displayName != null && displayName != string.Empty)
                 TasksDbHelper.AddShare(taskId, objectId, displayName);
 
             // If a delete button was clicked, remove the share from the task
