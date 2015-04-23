@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 //The following libraries were defined and added to this sample.
 using WebAppGroupClaimsDotNet.DAL;
 using WebAppGroupClaimsDotNet.Utils;
+using WebAppGroupClaimsDotNet.Models;
 
 
 namespace WebAppGroupClaimsDotNet.Controllers
@@ -74,7 +75,12 @@ namespace WebAppGroupClaimsDotNet.Controllers
         {
             // Values Needed for the People Picker
             ViewData["tenant"] = ConfigHelper.Tenant;
-            ViewData["token"] = GraphHelper.AcquireToken(ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value);
+            ViewData["clientId"] = ConfigHelper.ClientId;
+            ViewData["shares"] = new List<AadObject>();
+            ViewData["graphResourceId"] = ConfigHelper.GraphResourceId;
+
+            if (id == null || id == string.Empty)
+                return View();
 
             // Get the task details
             WebAppGroupClaimsDotNet.Models.Task task = TasksDbHelper.GetTask(Convert.ToInt32(id));

@@ -2,9 +2,14 @@
     ViewBag.Title = "Share";
 }
 
+@Scripts.Render("~/Scripts/AadPickerLibrary")
+@Scripts.Render("~/Scripts/adal")
+
+<iframe id="adal-iframe" hidden></iframe>
+
 @if (User.Identity.IsAuthenticated)
 {
-    using (Html.BeginForm("Share", "Tasks", FormMethod.Post, new { id = "share-form", onsubmit = "return preProcessForm()" }))
+    using (Html.BeginForm("Share", "Tasks", FormMethod.Post, new { id = "share-form", onsubmit="return preProcessForm()" }))
     {
         <button name="delete" value="" style="display:none"></button>
         <input type="text" name="taskId" value="@ViewData["taskId"]" hidden />
@@ -19,37 +24,7 @@
             <div style="height:20px">
                 <p id="validation-error" style="color:red" hidden>Please select a user or group.</p>
             </div>
-        </div>
-        <script>
-            // People/Group Picker Code
-            var maxResultsPerPage = 14;
-            var input = document.getElementById("search");
-            var token = "@ViewData["token"]";
-            var tenant = "@ViewData["tenant"]";
-
-            var picker = new AadPicker(maxResultsPerPage, input, token, tenant);
-
-            // Validate Search Term, Set Form Values
-            function preProcessForm() {
-                if (document.activeElement['name'] == 'delete')
-                    return true;
-                if (!picker.Selected()) {
-                    $("#validation-error").show();
-                    return false;
-                }
-                var $form = $("#share-form");
-                $form.get()[0].elements["objectId"].value = picker.Selected().objectId;
-                $form.get()[0].elements["displayName"].value = picker.Selected().displayName;
-            }
-
-            // Hide Error Message on Re-Focus
-            $("#search").focus(function () {
-                $("#validation-error").hide();
-            });
-
-        </script>
-
-        
+        </div>     
     
         <div class="container share-list" style="padding-top:10px">
             <div class="row">
@@ -86,5 +61,76 @@
     <a href="/Tasks/Index">&lt;&lt; Return to Tasks</a>
 
     }
+
+    <script>
+        // Here, we use adal.js to acquire a token for the Graph API,
+        // and pass it to the AadPicker library to use in searching for users and groups.
+        
+        // Set necessary configuration values for adal.js
+        window.config = {
+            instance: 'https://login.microsoftonline.com/',
+            tenant: '@ViewData["tenant"]',
+            clientId: '@ViewData["clientId"]',
+            postLogoutRedirectUri: window.location.origin,
+            cacheLocation: 'localStorage',
+        };
+
+        // Initiate the adal.js AuthenticationContext
+        var authContext = new AuthenticationContext(config);
+
+        // We use a hidden iframe to acquire an id_token that adal.js requires.
+        if (window.self !== window.top) {
+            authContext.handleWindowCallback();
+            if (authContext.getLoginError())
+                window.top.location = '/Error/ShowError?signIn=true&errorMessage=Error Acquiring Token: ' + authContext.getLoginError();
+            if (!authContext.getCachedUser())
+                window.authContext.login();
+
+        // Once adal.js has acquired an id_token in an iframe, the top level window can acquire a token for the graph
+            else window.top.startPicker();
+        } else $("#adal-iframe").attr('src', '/Tasks/Share');
+
+        // Set the necessary configurations for the AadPicker library.
+        var maxResultsPerPage = 14;
+        var input = document.getElementById("search");
+        var tenant = "@ViewData["tenant"]";
+
+        // Acquire a token for the Graph API and pass it to the AadPicker library.
+        window.startPicker = function () {
+            if (window.hasOwnProperty('picker'))
+                return;
+
+            // Get a token for the People Picker
+            authContext.getCachedUser();
+            authContext.acquireToken('@ViewData["graphResourceId"]', function (error, token) {
+                if (error || !token) {
+                    window.location = '/Error/ShowError?signIn=true&errorMessage=Error Acquiring Token: ' + error;
+                    return;
+                }
+
+                // Invoke the People Picker
+                window.picker = new AadPicker(maxResultsPerPage, input, token, tenant);
+            });
+        };
+
+        // When the form is submitted, validate the submission and gather the selected user/group from the AadPicker.
+        function preProcessForm() {
+            if (document.activeElement['name'] == 'delete')
+                return true;
+            if (!window.picker.Selected()) {
+                $("#validation-error").show();
+                return false;
+            }
+            var $form = $("#share-form");
+            $form.get()[0].elements["objectId"].value = window.picker.Selected().objectId;
+            $form.get()[0].elements["displayName"].value = window.picker.Selected().displayName;
+        }
+
+        // Hide any validation errors on search box re-focus
+        $("#search").focus(function () {
+            $("#validation-error").hide();
+        });
+
+    </script>
 }
 

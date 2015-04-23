@@ -52,7 +52,7 @@
                             @if (task.Creator == (string)ViewData["userId"])
                         {
                                 <div class="task-owner">
-                                    <a href="/Tasks/Share?id=@task.TaskID" class="share-link">
+                                    <a href="/Tasks/Share/@task.TaskID" class="share-link">
                                         @(task.SharedWith.Count - 1) Share(s)
                                     </a>
                                 </div>
