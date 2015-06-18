@@ -43,7 +43,7 @@ From your shell or command line:
 10. While still in the Azure portal, click the Configure tab of your application.
 11. Find the Client ID value and copy it aside, you will need this later when configuring your application.
 12. Create a new key for the application.  Save the configuration so you can view the key value.  Save this key aside, you'll need it shortly as well.
-13. In the Permissions to Other Applications configuration section, ensure that both "Access your organization's directory" and "Enable sign-on and read user's profiles" are selected under "Delegated permissions" for "Windows Azure Active Directory"  Save the configuration.
+13. In the Permissions to Other Applications configuration section, ensure that both "Read directory data" and "Enable sign-on and read user's profiles" are selected under "Delegated permissions" for "Windows Azure Active Directory"  Save the configuration.
 
 ### Step 3: Configure your application to receive group claims
 
