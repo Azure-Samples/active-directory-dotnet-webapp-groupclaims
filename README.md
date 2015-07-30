@@ -21,7 +21,7 @@ To run this sample you will need:
 - An Internet connection
 - An Azure subscription (a free trial is sufficient)
 
-Every Azure subscription has an associated Azure Active Directory tenant.  If you don't already have an Azure subscription, you can get a free subscription by signing up at [http://wwww.windowsazure.com](http://www.windowsazure.com).  All of the Azure AD features used by this sample are available free of charge.
+Every Azure subscription has an associated Azure Active Directory tenant.  If you don't already have an Azure subscription, you can get a free subscription by signing up at [https://azure.microsoft.com](https://azure.microsoft.com/en-us/pricing/free-trial/).  All of the Azure AD features used by this sample are available free of charge.
 
 ### Step 1:  Clone or download this repository
 
@@ -48,7 +48,7 @@ From your shell or command line:
 ### Step 3: Configure your application to receive group claims
 
 1. While still in the Configure tab of your application, click "Manage Manifest" in the drawer, and download the existing manifest.
-2. Edit the downloaded manifest by locating the "groupMemebershipClaims" setting, and setting its value to "All" (or to "SecurityGroup" if you are not interested in Distribution Lists).
+2. Edit the downloaded manifest by locating the "groupMembershipClaims" setting, and setting its value to "All" (or to "SecurityGroup" if you are not interested in Distribution Lists).
 3. Save and upload the edited manifest using the same "Manage Manifest" button in the portal.
 ```JSON
 {
@@ -85,7 +85,7 @@ To deploy this application to Azure, you will publish it to an Azure Website.
 5. Switch to Visual Studio and go to the WebApp-GroupClaims-DotNet project.  In the web.config file, update the "PostLogoutRedirectUri" value to the root address of your published appliction as well.
 6. Right click on the project in the Solution Explorer and select Publish.  Under Profile, click Import, and import the publish profile that you just downloaded.
 6. On the Connection tab, update the Destination URL so that it is https, for example https://tasktracker-contoso.azurewebsites.net.  Click Next.
-7. On the Settings tab, make sure Enable Organizational Authentication is NOT selected.  Click Publish.
+7. On the Settings tab, make sure that Enable Organizational Authentication is NOT selected.  Click Publish.
 8. Visual Studio will publish the project and automatically open a browser to the URL of the project.  If you see the default web page of the project, the publication was successful.
 
 ## Code Walk-Through
