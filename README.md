@@ -78,9 +78,13 @@ Clean the solution, rebuild the solution, and run it!  Explore the sample by sig
 To deploy this application to Azure, you will publish it to an Azure Website.
 
 1. Sign in to the [Azure management portal](https://manage.windowsazure.com).
-2. Click on Web Sites in the left hand nav.
-3. Click New in the bottom left hand corner, select Compute --> Web Site --> Quick Create, select the hosting plan and region, and give your web site a name, e.g. tasktracker-contoso.azurewebsites.net.  Click Create Web Site.
-4. Once the web site is created, click on it to manage it.  For the purposes of this sample, download the publish profile from Quick Start or from the Dashboard and save it.  Other deployment mechanisms, such as from source control, can also be used.
+2. Click on Web Apps in the left hand nav.
+3. Click New in the bottom left hand corner, select Compute --> Web App --> Custom Create.
+4. Enter a URL for your web app, e.g. tasktracker-contoso.azurewebsites.net, select an App Service plan, select **Create a new SQL database**, enter GroupClaimContext as the **DB Connection String Name**.
+5. Click Next (the right-arrow at the bottom left).
+6. Select or create a database server, and enter server login credentials.
+7. Click Complete (the check mark at the bottom left).
+4. Once the web app is created, click on it to manage it.  For the purposes of this sample, download the publish profile from Quick Start or from the Dashboard and save it.  Other deployment mechanisms, such as from source control, can also be used.
 5. While still in the Azure management portal, navigate back to the Azure AD tenant you used in creating this sample.  Under applications, select your Task Tracker application.  Under configure, update the Sign-On URL and Reply URL fields to the root address of your published application, for example https://tasktracker-contoso.azurewebsites.net/.  Click Save.
 5. Switch to Visual Studio and go to the WebApp-GroupClaims-DotNet project.  In the web.config file, update the "PostLogoutRedirectUri" value to the root address of your published application as well.
 6. Right click on the project in the Solution Explorer and select Publish.  Under Profile, click Import, and import the publish profile that you just downloaded.
