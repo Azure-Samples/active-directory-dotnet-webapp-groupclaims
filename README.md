@@ -1,13 +1,13 @@
 ---
-services:
-platforms:
-author: azure
+services: active-directory
+platforms: dotnet
+author: dstrockis
 ---
 
 Authorization in a web app using Azure AD groups & group claims
 ==================================
 
-This sample shows how to build an MVC web application that uses Azure AD Groups for authorization.  Authorization in Azure AD can also be done with Application Roles, as shown in [WebApp-RoleClaims-DotNet](https://github.com/AzureADSamples/WebApp-RoleClaims-DotNet). This sample uses the OpenID Connect ASP.Net OWIN middleware and ADAL .Net.
+This sample shows how to build an MVC web application that uses Azure AD Groups for authorization.  Authorization in Azure AD can also be done with Application Roles, as shown in [WebApp-RoleClaims-DotNet](https://github.com/Azure-Samples/active-directory-dotnet-webapp-authz-roleclaims). This sample uses the OpenID Connect ASP.Net OWIN middleware and ADAL .Net.
 
 For more information about how the protocols work in this scenario and other scenarios, see [Authentication Scenarios for Azure AD](http://go.microsoft.com/fwlink/?LinkId=394414).
 
@@ -17,7 +17,7 @@ This MVC 5 web application is a simple "Task Tracker" application that allows us
 
 To enforce authorization on tasks based on sharing, the application uses Azure AD Groups and Group Claims.  Users can share their tasks directly with other users, or with Azure AD Groups (Security Groups or Distribution Lists).  If a task is shared with a group, all members of that group will have read and update access to the task.  The application is able to determine which tasks a user can view based on their group membership, which is indicated by the Group Claims that the application receives on user sign in.  
 
-If you would like to see a sample that enforces Role Based Access Control (RBAC) using Azure AD Application Roles and Role Claims, see [WebApp-RoleClaims-DotNet](https://github.com/AzureADSamples/WebApp-RoleClaims-DotNet).  Azure AD Groups and Application Roles are by no means mutually exclusive - they can be used in tandem to provide even finer grained access control.
+If you would like to see a sample that enforces Role Based Access Control (RBAC) using Azure AD Application Roles and Role Claims, see [WebApp-RoleClaims-DotNet](https://github.com/Azure-Samples/active-directory-dotnet-webapp-authz-roleclaims).  Azure AD Groups and Application Roles are by no means mutually exclusive - they can be used in tandem to provide even finer grained access control.
 
 
 ## How To Run The Sample
@@ -33,7 +33,7 @@ Every Azure subscription has an associated Azure Active Directory tenant.  If yo
 
 From your shell or command line:
 
-`git clone https://github.com/AzureADSamples/WebApp-GroupClaims-DotNet.git`
+`git clone https://github.com/Azure-Samples/active-directory-dotnet-webapp-authz-roleclaims.git`
 
 ### Step 2:  Register the sample with your Azure Active Directory tenant
 
