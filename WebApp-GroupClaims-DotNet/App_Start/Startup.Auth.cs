@@ -31,15 +31,13 @@ namespace WebAppGroupClaimsDotNet
                     PostLogoutRedirectUri = ConfigHelper.PostLogoutRedirectUri,
                     Notifications = new OpenIdConnectAuthenticationNotifications
                     {
-                        AuthorizationCodeReceived = context =>
+                        AuthorizationCodeReceived = async context =>
                         {
                             ClientCredential credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
                             string userObjectId = context.AuthenticationTicket.Identity.FindFirst(Globals.ObjectIdClaimType).Value;
                             AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority, new TokenDbCache(userObjectId));
-                            AuthenticationResult result = authContext.AcquireTokenByAuthorizationCode(
+                            AuthenticationResult result = await authContext.AcquireTokenByAuthorizationCodeAsync(
                                 context.Code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential, ConfigHelper.GraphResourceId);
-
-                            return Task.FromResult(0);
                         },
 
                         AuthenticationFailed = context =>

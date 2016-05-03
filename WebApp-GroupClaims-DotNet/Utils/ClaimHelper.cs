@@ -31,7 +31,7 @@ namespace WebAppGroupClaimsDotNet.Utils
             ClientCredential credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
             AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority,
                 new TokenDbCache(claimsIdentity.FindFirst(Globals.ObjectIdClaimType).Value));
-            AuthenticationResult result = authContext.AcquireTokenSilent(ConfigHelper.GraphResourceId, credential,
+            AuthenticationResult result = await authContext.AcquireTokenSilentAsync(ConfigHelper.GraphResourceId, credential,
                 new UserIdentifier(claimsIdentity.FindFirst(Globals.ObjectIdClaimType).Value, UserIdentifierType.UniqueId));
 
             // Get the GraphAPI Group Endpoint for the specific user from the _claim_sources claim in token

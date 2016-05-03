@@ -12,11 +12,11 @@ namespace WebAppGroupClaimsDotNet.Utils
 {
     class GraphHelper
     {
-        public static string AcquireToken(string userObjectId)
+        public static async Task<string> AcquireToken(string userObjectId)
         {
             ClientCredential cred = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
             AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority, new TokenDbCache(userObjectId));
-            AuthenticationResult result = authContext.AcquireTokenSilent(ConfigHelper.GraphResourceId, cred, new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
+            AuthenticationResult result = await authContext.AcquireTokenSilentAsync(ConfigHelper.GraphResourceId, cred, new UserIdentifier(userObjectId, UserIdentifierType.UniqueId));
             return result.AccessToken;
         }
 
@@ -35,7 +35,7 @@ namespace WebAppGroupClaimsDotNet.Utils
         public async static Task GetDirectoryObjects(List<string> objectIds, List<Group> groups, List<DirectoryRole> roles, List<User> users)
         {
             string userObjectId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
-            ActiveDirectoryClient graphClient = new ActiveDirectoryClient(new Uri(ConfigHelper.GraphServiceRoot), async () => { return GraphHelper.AcquireToken(userObjectId); });
+            ActiveDirectoryClient graphClient = new ActiveDirectoryClient(new Uri(ConfigHelper.GraphServiceRoot), async () => { return await GraphHelper.AcquireToken(userObjectId); });
 
             int batchCount = 0;
             List<Task<IBatchElementResult[]>> requests = new List<Task<IBatchElementResult[]>>();
