@@ -11,6 +11,8 @@ This sample shows how to build an MVC web application that uses Azure AD Groups 
 
 For more information about how the protocols work in this scenario and other scenarios, see [Authentication Scenarios for Azure AD](http://go.microsoft.com/fwlink/?LinkId=394414).
 
+> Looking for previous versions of this code sample? Check out the tags on the [releases](../../releases) GitHub page.
+
 ##About The Sample
 
 This MVC 5 web application is a simple "Task Tracker" application that allows users to create, read, update, and delete tasks.  Within the application, any user can create a task, and become the owner of any task they create.  As an owner of a task, the user can delete the task and share the task with other users.  Other users are only able to read and update tasks that they own or that have been shared with them.
