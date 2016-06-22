@@ -48,8 +48,11 @@ From your shell or command line:
 7. Enter a friendly name for the application, for example "TaskTrackerWebApp", select "Web Application and/or Web API", and click next.
 8. For the sign-on URL and reply URL, enter the base URL for the sample, which is by default `https://localhost:44322/`.  NOTE:  It is important, due to the way Azure AD matches URLs, to ensure there is a trailing slash on the end of this URL.  If you don't include the trailing slash, you will receive an error when the application attempts to redeem an authorization code.
 9. For the App ID URI, enter `https://<your_tenant_name>/<your_application_name>`, replacing `<your_tenant_name>` with the name of your Azure AD tenant and `<your_application_name>` with the name you chose above.  Click OK to complete the registration.
-10. While still in the Azure portal, click the Configure tab of your application.
-11. Find the Client ID value and copy it aside, you will need this later when configuring your application.
+1. While still in the Azure portal, click the **Configure** tab of your application.
+2. Locate the **Manage Manifest** button in the bottom drawer.  Click it and download your application's manifest as a `.json` file.
+3. Open the `.json` file in a text editor and change the `logoutUrl` property to `https://localhost:44322/Account/EndSession`.  This is the default single sign out URL for this sample.
+4. Back in the Azure portal, click **Manage Manifest** then **Upload Manifest**, and upload your updated `.json` file.
+5. Finally, locate the **Client ID** value in the **Configure** tab and copy it to your clipboard.  You will need it shortly.
 12. Create a new key for the application.  Save the configuration so you can view the key value.  Save this key aside, you'll need it shortly as well.
 13. In the Permissions to Other Applications configuration section, ensure that both "Read directory data" and "Enable sign-on and read user's profiles" are selected under "Delegated permissions" for "Azure Active Directory"  Save the configuration.
 
