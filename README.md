@@ -72,7 +72,7 @@ From your shell or command line:
 3. Find the app key `ida:Tenant` and replace the value with your AAD tenant name, i.e. "tasktracker.onmicrosoft.com".
 4. Find the app key `ida:ClientId` and replace the value with the Client ID for the application from the Azure portal.
 5. Find the app key `ida:AppKey` and replace the value with the key for the application from the Azure portal.
-6. If you changed the base URL of the TodoListWebApp sample, find the app key `ida:PostLogoutRedirectUri` and replace the value with the new base URL of the sample.
+6. If you changed the base URL of the sample, find the app key `ida:PostLogoutRedirectUri` and replace the value with the new base URL of the sample.
 
 ### Step 5:  Run the sample
 
