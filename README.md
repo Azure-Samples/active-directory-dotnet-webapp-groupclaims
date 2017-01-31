@@ -34,7 +34,7 @@ To run this sample you will need:
 
 From your shell or command line:
 
-`git clone https://github.com/Azure-Samples/active-directory-dotnet-webapp-authz-roleclaims.git`
+`git clone https://github.com/Azure-Samples/active-directory-dotnet-webapp-groupclaims.git`
 
 ### Step 2:  Register the sample with your Azure Active Directory tenant
 
