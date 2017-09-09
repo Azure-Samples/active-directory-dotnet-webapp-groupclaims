@@ -25,7 +25,7 @@ If you would like to see a sample that enforces Role Based Access Control (RBAC)
 ## How To Run The Sample
 
 To run this sample you will need:
-- Visual Studio 2013
+- Visual Studio 2017
 - An Internet connection
 - An Azure Active Directory (Azure AD) tenant. For more information on how to get an Azure AD tenant, please see [How to get an Azure AD tenant](https://azure.microsoft.com/en-us/documentation/articles/active-directory-howto-tenant/) 
 - A user account in your Azure AD tenant. This sample will not work with a Microsoft account, so if you signed in to the Azure portal with a Microsoft account and have never created a user account in your directory before, you need to do that now.
@@ -35,6 +35,11 @@ To run this sample you will need:
 From your shell or command line:
 
 `git clone https://github.com/Azure-Samples/active-directory-dotnet-webapp-groupclaims.git`
+
+
+> Warning: Because the name of the project is pretty long, you might want to clone the repo into a folder which is close to the root
+of your hard disk (probably not under \Users\xxxxxxxx\Source\Repos\something). This will avoid you to get "Fully Qualified Name Less Than 260 Characters "
+error messages when you build (or restore the NuGet packages.)
 
 ### Step 2:  Register the sample with your Azure Active Directory tenant
 
@@ -67,7 +72,7 @@ From your shell or command line:
 
 ### Step 4:  Configure the sample to use your Azure AD tenant
 
-1. Open the solution in Visual Studio 2013.
+1. Open the solution in Visual Studio 2017.
 2. Open the `web.config` file.
 3. Find the app key `ida:Tenant` and replace the value with your AAD tenant name, i.e. "tasktracker.onmicrosoft.com".
 4. Find the app key `ida:ClientId` and replace the value with the Client ID for the application from the Azure portal.
