@@ -177,6 +177,7 @@ Function ConfigureApplications
                                                    -IdentifierUris "https://$tenantName/TaskTrackerWebApp-GroupClaims" `
                                                    -PasswordCredentials $key `
                                                    -RequiredResourceAccess $perm `
+                                                   -GroupMembershipClaims "All" `
                                                    -PublicClient $False
 
 
@@ -212,8 +213,9 @@ Function ConfigureApplications
    $configFile = $pwd.Path + "\..\WebApp-GroupClaims-DotNet\Web.Config"
    Write-Host "Updating the sample code ($configFile)"
    ReplaceSetting -configFilePath $configFile -key "ida:ClientId" -newValue $serviceAadApplication.AppId
-   ReplaceSetting -configFilePath $configFile -key "ida:AppKey" -newValue $serviceAppKey
-   ReplaceSetting -configFilePath $configFile -key "ida:Tenant" -newValue $tenantName
+   ReplaceSetting -configFilePath $configFile -key "ida:ClientSecret" -newValue $serviceAppKey
+   ReplaceSetting -configFilePath $configFile -key "ida:Domain" -newValue $tenantName
+   ReplaceSetting -configFilePath $configFile -key "ida:TenantId" -newValue $tenantId
    ReplaceSetting -configFilePath $configFile -key "ida:PostLogoutRedirectUri" -newValue $serviceAadApplication.HomePage
 
    Add-Content -Value "</tbody></table></body></html>" -Path createdApps.html  

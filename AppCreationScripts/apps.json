@@ -23,9 +23,6 @@
           "Resource": "Microsoft Graph",
           "DelegatedPermissions": [ "Directory.Read.All" ]
         }
-      ],
-      "ManualSteps": [
-        { "Comment": "Refer to the 'Configure your application to receive group claims' section in README on how to configure your newly created app further." }
       ]
     }
   ],
@@ -47,12 +44,16 @@
           "value": ".AppId"
         },
         {
-          "key": "ida:AppKey",
+          "key": "ida:ClientSecret",
           "value": ".AppKey"
         },
         {
-          "key": "ida:Tenant",
+          "key": "ida:Domain",
           "value": "$tenantName"
+        },
+        {
+          "key": "ida:TenantId",
+          "value": "$tenantId"
         },
         {
           "key": "ida:PostLogoutRedirectUri",

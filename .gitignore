@@ -110,3 +110,4 @@ UpgradeLog*.XML
 /AppCreationScripts/Steps.txt
 /WebApp-GroupClaims-DotNet/Web.config.backup.1
 /AppCreationScripts/Steps.md
+/AppCreationScripts/createdApps.html
