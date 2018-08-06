@@ -1,10 +1,10 @@
-﻿using System.Web.Mvc;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Web;
+using System.Web.Mvc;
 
-// The following libraries were added to this sample.
-using Microsoft.Owin.Security;
-
-namespace WebAppGroupClaimsDotNet.Controllers
+namespace WebApp_GroupClaims_DotNet.Controllers
 {
     public class ErrorController : Controller
     {
@@ -15,7 +15,7 @@ namespace WebAppGroupClaimsDotNet.Controllers
             return View();
         }
 
-        public ActionResult Reauth(string redirectUri)
+        public ActionResult ReAuth(string redirectUri)
         {
             ViewBag.RedirectUri = redirectUri;
             return View();

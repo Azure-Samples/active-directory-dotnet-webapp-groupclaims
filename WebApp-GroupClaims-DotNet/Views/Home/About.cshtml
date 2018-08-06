@@ -2,65 +2,6 @@
     ViewBag.Title = "About";
 }
 <h2>@ViewBag.Title.</h2>
+<h3>@ViewBag.Message</h3>
 
-<h3>Your Current Groups:</h3>
-@if ((bool)ViewData["overageOccurred"])
-{ 
-    <h4 style="color:blue">Group Membership Acquired via GraphAPI Calls. </h4>
-}
-else
-{
-    <h4 style="color:blue">Group Membership Acquired via Group Claims. </h4>
-}
-<table class="table table-striped table-bordered table-condensed table-hover">
-    <tr>
-        <th>Name</th>
-        <th>ObjectID</th>
-    </tr>
-
-    @foreach (Microsoft.Azure.ActiveDirectory.GraphClient.Group group in (List<Microsoft.Azure.ActiveDirectory.GraphClient.Group>)ViewData["myGroups"])
-    {
-        <tr>
-            <td>@group.DisplayName</td>
-            <td>@group.ObjectId</td>
-        </tr>
-    }
-
-</table>
-
-<h3>Your Current Directory Roles:</h3>
-<table class="table table-striped table-bordered table-condensed table-hover">
-    <tr>
-        <th>Name</th>
-        <th>ObjectID</th>
-    </tr>
-
-    @foreach (Microsoft.Azure.ActiveDirectory.GraphClient.DirectoryRole role in (List<Microsoft.Azure.ActiveDirectory.GraphClient.DirectoryRole>)ViewData["myDirectoryRoles"])
-    {
-        <tr>
-            <td>@role.DisplayName</td>
-            <td>@role.ObjectId</td>
-        </tr>
-    }
-</table>
-
-<h3>Your Current Claims:</h3>
-<table class="table table-striped table-bordered table-condensed table-hover">
-    <tr>
-        <th>Type</th>
-        <th>Value</th>
-    </tr>
-
-    @using System.Security.Claims 
-    @foreach (Claim claim in ClaimsPrincipal.Current.Claims)
-    {
-        if (claim.Type != "groups")
-        { 
-            <tr>
-                <td>@claim.Type</td>
-                <td>@claim.Value</td>
-            </tr>
-        }
-    }
-    
-</table>
+<p>Use this area to provide additional information.</p>

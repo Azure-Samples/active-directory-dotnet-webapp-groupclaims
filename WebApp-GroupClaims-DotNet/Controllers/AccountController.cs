@@ -1,62 +1,71 @@
-﻿using System.Web;
-using System.Web.Mvc;
-
-//The following libraries were added to this sample.
-using System.Security.Claims;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
+﻿using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Microsoft.Owin.Security;
 using Microsoft.Owin.Security.Cookies;
 using Microsoft.Owin.Security.OpenIdConnect;
+using System.Configuration;
+using System.Security.Claims;
+using System.Web;
+using System.Web.Mvc;
+using WebApp_GroupClaims_DotNet.Models;
 
-//The following libraries were defined and added to this sample.
-using WebAppGroupClaimsDotNet.Utils;
-
-namespace WebAppGroupClaimsDotNet.Controllers
+namespace WebApp_GroupClaims_DotNet.Controllers
 {
     public class AccountController : Controller
     {
-        /// <summary>
-        /// Sends an OpenIDConnect Sign-In Request.
-        /// </summary>
-        public void SignIn(string redirectUri)
-        {
-            if (redirectUri == null)
-                redirectUri = "/";
+        private static readonly string AADInstance = Util.EnsureTrailingSlash(ConfigurationManager.AppSettings["ida:AADInstance"]);
+        private static readonly string TenantId = ConfigurationManager.AppSettings["ida:TenantId"];
 
-            HttpContext.GetOwinContext()
-                .Authentication.Challenge(new AuthenticationProperties {RedirectUri = redirectUri},
-                    OpenIdConnectAuthenticationDefaults.AuthenticationType);
+        public static readonly string Authority = AADInstance + TenantId;
+
+        public void SignIn()
+        {
+            // Send an OpenID Connect sign-in request.
+            if (!this.Request.IsAuthenticated)
+                this.HttpContext.GetOwinContext().Authentication.Challenge(new AuthenticationProperties { RedirectUri = "/" }, OpenIdConnectAuthenticationDefaults.AuthenticationType);
         }
 
         /// <summary>
-        /// Signs the user out and clears the cache of access tokens.
+        /// Represents an event that is raised when the sign-out operation is complete.
         /// </summary>
         public void SignOut()
         {
-            // Remove all cache entries for this user and send an OpenID Connect sign-out request.
-            if (Request.IsAuthenticated)
-            {
-                string userObjectID =
-                ClaimsPrincipal.Current.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier").Value;
-                var authContext = new AuthenticationContext(ConfigHelper.Authority, new TokenDbCache(userObjectID));
-                authContext.TokenCache.Clear();
+            this.RemoveCachedTokens();
 
-                HttpContext.GetOwinContext().Authentication.SignOut(
-                    OpenIdConnectAuthenticationDefaults.AuthenticationType, CookieAuthenticationDefaults.AuthenticationType);
-            }
+            string callbackUrl = this.Url.Action("SignOutCallback", "Account", routeValues: null, protocol: this.Request.Url.Scheme);
+
+            // Send an OpenID Connect sign -out request.
+            this.HttpContext.GetOwinContext().Authentication.SignOut(new AuthenticationProperties { RedirectUri = callbackUrl }, OpenIdConnectAuthenticationDefaults.AuthenticationType, CookieAuthenticationDefaults.AuthenticationType);
         }
-        
+
+        /// <summary>
+        /// Called by Azure AD. Here we end the user's session, but don't redirect to AAD for sign out.
+        /// </summary>
         public void EndSession()
         {
-            if (Request.IsAuthenticated)
+            this.RemoveCachedTokens();
+
+            this.HttpContext.GetOwinContext().Authentication.SignOut(CookieAuthenticationDefaults.AuthenticationType);
+        }
+
+        public ActionResult SignOutCallback()
+        {
+            if (this.Request.IsAuthenticated)
+                return this.RedirectToAction("Index", "Home");
+
+            return this.View();
+        }
+
+        /// <summary>
+        /// Remove all cache entries for this user.
+        /// </summary>
+        private void RemoveCachedTokens()
+        {
+            if (this.Request.IsAuthenticated)
             {
-                string userObjectID = ClaimsPrincipal.Current.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier").Value;
-                var authContext = new AuthenticationContext(ConfigHelper.Authority, new TokenDbCache(userObjectID));
+                string signedInUserId = ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier).Value;
+                AuthenticationContext authContext = new AuthenticationContext(Authority, new ADALTokenCache(signedInUserId));
                 authContext.TokenCache.Clear();
             }
-            
-            // If AAD sends a single sign-out message to the app, end the user's session, but don't redirect to AAD for sign out.
-            HttpContext.GetOwinContext().Authentication.SignOut(CookieAuthenticationDefaults.AuthenticationType);
         }
     }
 }
