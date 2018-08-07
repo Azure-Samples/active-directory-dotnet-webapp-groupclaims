@@ -29,6 +29,10 @@ namespace WebApp_GroupClaims_DotNet.Utils
             this.authHelper = new AuthenticationHelper(this.Authority, this.TokenCache);
         }
 
+        /// <summary>
+        /// Calls the Graph /me endpoint using OBO.
+        /// </summary>
+        /// <returns></returns>
         public async Task<User> GetMeAsync()
         {
             User currentUserObject;
@@ -50,6 +54,102 @@ namespace WebApp_GroupClaims_DotNet.Utils
             }
 
             return currentUserObject;
+        }
+
+        public async Task<IList<Group>> GetCurrentUserGroupsAsync()
+        {
+            IUserMemberOfCollectionWithReferencesPage memberOfGroups = null;
+            IList<Group> groups = new List<Group>();
+
+            try
+            {
+                GraphServiceClient graphClient = this.GetAuthenticatedClientForUser();
+                memberOfGroups = await graphClient.Me.MemberOf.Request().GetAsync();
+                
+                if(memberOfGroups != null)
+                {
+                    do
+                    {
+                        foreach (var directoryObject in memberOfGroups.CurrentPage)
+                        {
+                            if (directoryObject is Group)
+                            {
+                                Group group = directoryObject as Group;
+                                Trace.WriteLine("Got group: " + group.Id);
+                                groups.Add(group as Group);
+                            }
+                        }
+                        if (memberOfGroups.NextPageRequest != null)
+                        {
+                            memberOfGroups = await memberOfGroups.NextPageRequest.GetAsync();
+                        }
+                        else
+                        {
+                            memberOfGroups = null;
+                        }
+
+                    } while (memberOfGroups != null);
+                }                
+
+                return groups;
+            }
+            catch (ServiceException e)
+            {
+                Trace.Fail("We could not get user groups: " + e.Error.Message);
+                return null;
+            }
+        }
+
+        public async Task<IList<DirectoryRole>> GetCurrentUserDirectoryRolesAsync()
+        {
+            IUserMemberOfCollectionWithReferencesPage memberOfDirectoryRoles = null;
+            IList<DirectoryRole> DirectoryRoles = new List<DirectoryRole>();
+
+            try
+            {
+                GraphServiceClient graphClient = this.GetAuthenticatedClientForUser();
+                memberOfDirectoryRoles = await graphClient.Me.MemberOf.Request().GetAsync();
+
+                if (memberOfDirectoryRoles != null)
+                {
+                    do
+                    {
+                        foreach (var directoryObject in memberOfDirectoryRoles.CurrentPage)
+                        {
+                            if (directoryObject is DirectoryRole)
+                            {
+                                DirectoryRole DirectoryRole = directoryObject as DirectoryRole;
+                                Trace.WriteLine("Got DirectoryRole: " + DirectoryRole.Id);
+                                DirectoryRoles.Add(DirectoryRole as DirectoryRole);
+                            }
+                        }
+                        if (memberOfDirectoryRoles.NextPageRequest != null)
+                        {
+                            memberOfDirectoryRoles = await memberOfDirectoryRoles.NextPageRequest.GetAsync();
+                        }
+                        else
+                        {
+                            memberOfDirectoryRoles = null;
+                        }
+
+                    } while (memberOfDirectoryRoles != null);
+                }
+
+                return DirectoryRoles;
+            }
+            catch (ServiceException e)
+            {
+                Trace.Fail("We could not get user DirectoryRoles: " + e.Error.Message);
+                return null;
+            }
+        }
+
+        public async Task<IList<string>> GetCurrentUserGroupIdsAsync()
+        {
+            IList<string> groupObjectIds = new List<string>();
+            var groups = await this.GetCurrentUserGroupsAsync();
+
+            return groups.Select(x=>x.Id).ToList();
         }
 
         private GraphServiceClient GetAuthenticatedClientForUser()

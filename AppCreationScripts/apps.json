@@ -23,6 +23,9 @@
           "Resource": "Microsoft Graph",
           "DelegatedPermissions": [ "Directory.Read.All" ]
         }
+      ],
+      "ManualSteps": [
+        { "Comment": "Follow the instructions in Readme oh how to change the manifest to include GroupMembershipClaims." }
       ]
     }
   ],

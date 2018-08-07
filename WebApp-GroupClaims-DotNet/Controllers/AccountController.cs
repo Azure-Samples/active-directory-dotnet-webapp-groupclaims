@@ -13,8 +13,6 @@ namespace WebApp_GroupClaims_DotNet.Controllers
 {
     public class AccountController : Controller
     {
-        public static readonly string Authority = AppConfig.AADInstance + AppConfig.TenantId;
-
         public void SignIn()
         {
             // Send an OpenID Connect sign-in request.
@@ -61,7 +59,7 @@ namespace WebApp_GroupClaims_DotNet.Controllers
             if (this.Request.IsAuthenticated)
             {
                 string signedInUserId = ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier).Value;
-                AuthenticationContext authContext = new AuthenticationContext(Authority, new ADALTokenCache(signedInUserId));
+                AuthenticationContext authContext = new AuthenticationContext(AppConfig.Authority, new ADALTokenCache(signedInUserId));
                 authContext.TokenCache.Clear();
             }
         }

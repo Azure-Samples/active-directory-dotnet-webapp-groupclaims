@@ -6,12 +6,13 @@ using System.Linq;
 using System.Web;
 using System.Web.Security;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using WebApp_GroupClaims_DotNet.Data;
 
 namespace WebApp_GroupClaims_DotNet.Models
 {
     public class ADALTokenCache : TokenCache
     {
-        private ApplicationDbContext db = new ApplicationDbContext();
+        private GroupClaimContext db = new GroupClaimContext();
         private string userId;
         private UserTokenCache Cache;
 

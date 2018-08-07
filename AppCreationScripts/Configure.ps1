@@ -177,6 +177,7 @@ Function ConfigureApplications
                                                    -IdentifierUris "https://$tenantName/TaskTrackerWebApp-GroupClaims" `
                                                    -PasswordCredentials $key `
                                                    -RequiredResourceAccess $perm `
+                                                   -GroupMembershipClaims "All" `
                                                    -PublicClient $False
 
 
