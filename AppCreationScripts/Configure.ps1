@@ -177,7 +177,6 @@ Function ConfigureApplications
                                                    -IdentifierUris "https://$tenantName/TaskTrackerWebApp-GroupClaims" `
                                                    -PasswordCredentials $key `
                                                    -RequiredResourceAccess $perm `
-                                                   -GroupMembershipClaims "All" `
                                                    -PublicClient $False
 
 
@@ -202,6 +201,7 @@ Function ConfigureApplications
    $requiredPermissions = GetRequiredPermissions -applicationDisplayName "Microsoft Graph" `
                                                  -requiredDelegatedPermissions "Directory.Read.All";
    $requiredResourcesAccess.Add($requiredPermissions)
+
 
    # Re-insert the existing Sign-in and read user profile permission to the permissions collection
    $requiredResourcesAccess.Add($perm)

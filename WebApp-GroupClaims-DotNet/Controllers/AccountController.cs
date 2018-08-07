@@ -7,15 +7,13 @@ using System.Security.Claims;
 using System.Web;
 using System.Web.Mvc;
 using WebApp_GroupClaims_DotNet.Models;
+using WebApp_GroupClaims_DotNet.Utils;
 
 namespace WebApp_GroupClaims_DotNet.Controllers
 {
     public class AccountController : Controller
     {
-        private static readonly string AADInstance = Util.EnsureTrailingSlash(ConfigurationManager.AppSettings["ida:AADInstance"]);
-        private static readonly string TenantId = ConfigurationManager.AppSettings["ida:TenantId"];
-
-        public static readonly string Authority = AADInstance + TenantId;
+        public static readonly string Authority = AppConfig.AADInstance + AppConfig.TenantId;
 
         public void SignIn()
         {

@@ -8,23 +8,14 @@ using System.Configuration;
 using System.IdentityModel.Claims;
 using System.Threading.Tasks;
 using System.Web;
+using Microsoft.IdentityModel.Tokens;
 using WebApp_GroupClaims_DotNet.Models;
+using WebApp_GroupClaims_DotNet.Utils;
 
 namespace WebApp_GroupClaims_DotNet
 {
     public partial class Startup
     {
-        private static readonly string AADInstance = Util.EnsureTrailingSlash(ConfigurationManager.AppSettings["ida:AADInstance"]);
-        private static readonly string AppKey = ConfigurationManager.AppSettings["ida:ClientSecret"];
-        private static readonly string ClientId = ConfigurationManager.AppSettings["ida:ClientId"];
-        private static readonly string PostLogoutRedirectUri = ConfigurationManager.AppSettings["ida:PostLogoutRedirectUri"];
-        private static readonly string TenantId = ConfigurationManager.AppSettings["ida:TenantId"];
-
-        public static readonly string Authority = AADInstance + TenantId;
-
-        // This is the resource ID of the AAD Graph API.  We'll need this to request a token to call the Graph API.
-        private string graphResourceId = "https://graph.windows.net";
-
         public void ConfigureAuth(IAppBuilder app)
         {
             ApplicationDbContext db = new ApplicationDbContext();
@@ -36,9 +27,14 @@ namespace WebApp_GroupClaims_DotNet
             app.UseOpenIdConnectAuthentication(
                 new OpenIdConnectAuthenticationOptions
                 {
-                    ClientId = ClientId,
-                    Authority = Authority,
-                    PostLogoutRedirectUri = PostLogoutRedirectUri,
+                    ClientId = AppConfig.ClientId,
+                    Authority = AppConfig.Authority,
+                    PostLogoutRedirectUri = AppConfig.PostLogoutRedirectUri,
+
+                    TokenValidationParameters = new TokenValidationParameters
+                    {
+                        SaveSigninToken = true
+                    },
 
                     Notifications = new OpenIdConnectAuthenticationNotifications()
                     {
@@ -46,11 +42,11 @@ namespace WebApp_GroupClaims_DotNet
                         AuthorizationCodeReceived = (context) =>
                         {
                             var code = context.Code;
-                            ClientCredential credential = new ClientCredential(ClientId, AppKey);
+                            ClientCredential credential = new ClientCredential(AppConfig.ClientId, AppConfig.AppKey);
                             string signedInUserID = context.AuthenticationTicket.Identity.FindFirst(ClaimTypes.NameIdentifier).Value;
-                            AuthenticationContext authContext = new AuthenticationContext(Authority, new ADALTokenCache(signedInUserID));
+                            AuthenticationContext authContext = new AuthenticationContext(AppConfig.Authority, new ADALTokenCache(signedInUserID));
                             AuthenticationResult result = authContext.AcquireTokenByAuthorizationCodeAsync(
-                                code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential, graphResourceId).Result;
+                                code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential, AppConfig.GraphResourceId).Result;
 
                             return Task.FromResult(0);
                         },
