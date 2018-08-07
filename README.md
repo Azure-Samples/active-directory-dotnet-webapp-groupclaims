@@ -4,7 +4,6 @@ platforms: dotnet
 author: jmprieur
 level: 400
 client: .NET 4.6.1 Web App (MVC)
-service: ASP.NET Web API
 endpoint: AAD V1
 ---
 # Authorization in a web app using Azure AD groups & group claims
@@ -16,7 +15,6 @@ endpoint: AAD V1
 ### Overview
 This sample shows how to build an MVC web application that uses Azure AD Groups for authorization.  Authorization in Azure AD can also be done with Application Roles, as shown in [WebApp-RoleClaims-DotNet](https://github.com/Azure-Samples/active-directory-dotnet-webapp-roleclaims). This sample uses the OpenID Connect ASP.Net OWIN middleware and ADAL .Net.
 
-![Overview](./ReadmeFiles/topology.png)
 
 For more information about how the protocols work in this scenario and other scenarios, see [Authentication Scenarios for Azure AD](http://go.microsoft.com/fwlink/?LinkId=394414).
 
@@ -113,26 +111,31 @@ Open the solution in Visual Studio to configure the projects
 
 Clean the solution, rebuild the solution, and run it!  Explore the sample by signing in, navigating to different pages, adding tasks, signing out, etc.  Create several user accounts in the Azure Management Portal, and create tasks as each different user.  Create a Security Group in the Azure Management Portal, add users to it, and share tasks with the security group.
 
+Click on the user's login name on the top right corner to get a list of all the groups and roles that a user is part of.
+
+You can use the `BulkCreateGroups.ps1` provided in the [App Creation Scripts](./AppCreationScripts/) folder to help test overage scenarios.
+
 ## Deploy this Sample to Azure
 
 To deploy this application to Azure, you will publish it to an Azure Website.
 
 1. Sign in to the [Azure portal](https://portal.azure.com).
-2. Click New in the top left hand corner, select Web + Mobile, click on "See All" and choose Web App + SQL, select the hosting plan and region, and give your web site a name, e.g. tasktracker-contoso.azurewebsites.net.  Click Create Web Site.
-3. Choose "SQL Database", click on "Create a new database", enter "GroupClaimContext" as the **DB Connection String Name**.
-4. Select or create a database server, and enter server login credentials.
-5. Once the web app is created, click on it to manage it.  For the purposes of this sample, download the publish profile from Quick Start or from the Dashboard and save it.  Other deployment mechanisms, such as from source control, can also be used.
-6. While still in the Azure portal, navigate back to the Azure AD tenant you used in creating this sample.  Under applications, select your Task Tracker application.  Under Settings, update the Sign-On URL and Reply URL fields to the root address of your published application, for example https://tasktracker-contoso.azurewebsites.net/.  Click Save.
-7. Switch to Visual Studio and go to the WebApp-GroupClaims-DotNet project.  In the web.config file, update the "PostLogoutRedirectUri" value to the root address of your published application as well.
-8. Right click on the project in the Solution Explorer and select Publish.  Under Profile, click Import, and import the publish profile that you just downloaded.
-9. On the Connection tab, update the Destination URL so that it is https, for example https://tasktracker-contoso.azurewebsites.net.  Click Next.
-10. On the Settings tab, make sure that Enable Organizational Authentication is NOT selected.  Click Publish.
-11. Visual Studio will publish the project and automatically open a browser to the URL of the project.  If you see the default web page of the project, the publication was successful.
+1.  Click **Create a resource** in the top left-hand corner, select **Web + Mobile** --> **Web App**, select the hosting plan and region, and give your web site a name, for example, `TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net`.  Click Create Web Site.
+1.Choose "SQL Database", click on "Create a new database", enter "GroupClaimContext" as the **DB Connection String Name**.
+1. Select or create a database server, and enter server login credentials.
+1. Once the web site is created, click on it to manage it.  For this set of steps, download the publish profile by clicking **Get publish profile** and save it.  Other deployment mechanisms, such as from source control, can also be used.
+1. Switch to Visual Studio and go to the TaskTrackerWebApp-GroupClaims project.  Right click on the project in the Solution Explorer and select **Publish**.  Click **Import Profile** on the bottom bar, and import the publish profile that you downloaded earlier.
+1. Click on **Settings** and in the `Connection tab`, update the Destination URL so that it is https, for example [https://TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net](https://TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net). Click Next.
+1. On the Settings tab, make sure `Enable Organizational Authentication` is NOT selected.  Click **Save**. Click on **Publish** on the main screen.
+1. Visual Studio will publish the project and automatically open a browser to the URL of the project.  If you see the default web page of the project, the publication was successful.
 
 
 ## Code Walk-Through
 
-Coming soon.
+1. **UserProfileController** - Explore the code in this file on how to fetch a user's directory (App) roles and security group assignments.
+1. **AuthenticationHelper** - It has examples of how to obtain access tokens via the cache or from AAD.
+1. **MSGraphClient** - A small implementation of a client for [Microsoft Graph](https://graph.microsoft.com)
+1. **TokenHelper** - This class has the code that shown you how to inspect the '_claim_names' and use the value in '_claim_sources' to fetch the security groups when an overage occurs.
 
 ## Community Help and Support
 
@@ -152,10 +155,9 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 
 ## More information
 
-For more information, see ADAL.NET's conceptual documentation:
+For more information, see [Azure Active Directory, now with Group Claims and Application Roles] (https://cloudblogs.microsoft.com/enterprisemobility/2014/12/18/azure-active-directory-now-with-group-claims-and-application-roles/)
 
-> Provide links to the flows from the conceptual documentation
-> for instance:
+
 - [Application roles](https://docs.microsoft.com/en-us/azure/architecture/multitenant-identity/app-roles)
 - [Azure AD Connect sync: Understanding Users, Groups, and Contacts](https://docs.microsoft.com/en-us/azure/active-directory/connect/active-directory-aadconnectsync-understanding-users-and-contacts)
 - [Configure Office 365 Groups with on-premises Exchange hybrid](https://docs.microsoft.com/en-us/exchange/hybrid-deployment/set-up-office-365-groups)

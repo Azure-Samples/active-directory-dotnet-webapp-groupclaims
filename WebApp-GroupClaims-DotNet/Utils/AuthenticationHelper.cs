@@ -34,7 +34,7 @@ namespace WebApp_GroupClaims_DotNet.Utils
 
             try
             {
-                authResult = await authContext.AcquireTokenSilentAsync(resourceId, credential, new UserIdentifier(Util.GetSignedInObjectIdFromClaims(), UserIdentifierType.UniqueId));
+                authResult = await authContext.AcquireTokenSilentAsync(resourceId, credential, new UserIdentifier(Util.GetSignedInUsersObjectIdFromClaims(), UserIdentifierType.UniqueId));
             }
             catch (AdalSilentTokenAcquisitionException)
             {

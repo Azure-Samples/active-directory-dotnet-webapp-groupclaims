@@ -57,7 +57,7 @@ namespace WebApp_GroupClaims_DotNet.Controllers
         {
             if (this.Request.IsAuthenticated)
             {
-                AuthenticationContext authContext = new AuthenticationContext(AppConfig.Authority, new ADALTokenCache(Util.GetSignedInObjectIdFromClaims()));
+                AuthenticationContext authContext = new AuthenticationContext(AppConfig.Authority, new ADALTokenCache(Util.GetSignedInUsersObjectIdFromClaims()));
                 authContext.TokenCache.Clear();
             }
         }

@@ -29,7 +29,7 @@ namespace WebApp_GroupClaims_DotNet.Models
             return signedInUsersId;
         }
 
-        public static string GetSignedInObjectIdFromClaims()
+        public static string GetSignedInUsersObjectIdFromClaims()
         {
             string signedInUsersId = string.Empty;
 

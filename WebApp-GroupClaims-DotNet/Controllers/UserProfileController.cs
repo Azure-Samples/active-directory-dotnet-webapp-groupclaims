@@ -18,7 +18,7 @@ namespace WebApp_GroupClaims_DotNet.Controllers
         {
             try
             {
-                MSGraphClient msGraphClient = new MSGraphClient(AppConfig.Authority, new ADALTokenCache(Util.GetSignedInObjectIdFromClaims()));
+                MSGraphClient msGraphClient = new MSGraphClient(AppConfig.Authority, new ADALTokenCache(Util.GetSignedInUsersObjectIdFromClaims()));
 
                 User user = await msGraphClient.GetMeAsync();
                 UserGroupsAndDirectoryRoles userGroupsAndDirectoryRoles = await msGraphClient.GetCurrentUserGroupsAndRolesAsync();

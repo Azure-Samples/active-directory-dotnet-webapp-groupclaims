@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using System.Web.Mvc;
@@ -21,9 +21,10 @@ namespace WebApp_GroupClaims_DotNet.Controllers
                 // Get All Tasks User Can View
                 ClaimsIdentity userClaimsId = ClaimsPrincipal.Current.Identity as ClaimsIdentity;
                 UserGroupsAndDirectoryRoles userGroupsAndDirectoryRoles = await TokenHelper.GetUsersGroupsAsync(ClaimsPrincipal.Current);
+
                 List<string> userGroupsAndId = userGroupsAndDirectoryRoles.GroupIds;
 
-                string userObjectId = Util.GetSignedInObjectIdFromClaims();
+                string userObjectId = Util.GetSignedInUsersObjectIdFromClaims();
                 userGroupsAndId.Add(userObjectId);
 
                 ViewData["tasks"] = TasksDbHelper.GetAllTasks(userGroupsAndId);
@@ -71,26 +72,31 @@ namespace WebApp_GroupClaims_DotNet.Controllers
         [Authorize]
         public async Task<ActionResult> Share(string id)
         {
-            AuthenticationHelper authHelper = new AuthenticationHelper(AppConfig.Authority, new ADALTokenCache(Util.GetSignedInObjectIdFromClaims()));
+            AuthenticationHelper authHelper = new AuthenticationHelper(AppConfig.Authority, new ADALTokenCache(Util.GetSignedInUsersObjectIdFromClaims()));
+
             // Values Needed for the People Picker
             ViewData["tenant"] = AppConfig.TenantId;
             ViewData["token"] = await authHelper.GetAccessTokenForUserAsync(AppConfig.GraphResourceId, AppConfig.PostLogoutRedirectUri);
 
             UserGroupsAndDirectoryRoles userGroupsAndDirectoryRoles = await TokenHelper.GetUsersGroupsAsync(ClaimsPrincipal.Current);
             List<string> userGroupsAndId = userGroupsAndDirectoryRoles.GroupIds;
-
-            string userObjectId = Util.GetSignedInObjectIdFromClaims();
-            userGroupsAndId.Add(userObjectId);
             ViewData["tasks"] = TasksDbHelper.GetAllTasks(userGroupsAndId);
 
+            string userObjectId = Util.GetSignedInUsersObjectIdFromClaims();
+            userGroupsAndId.Add(userObjectId);
+            ViewData["userId"] = userObjectId;
+                        
             // Get the task details
             WebApp_GroupClaims_DotNet.Models.Task task = TasksDbHelper.GetTask(Convert.ToInt32(id));
             if (task == null)
+            {
                 RedirectToAction("ShowError", "Error", new { message = "Task Not Found in DB." });
+            }
+
             ViewData["shares"] = task.SharedWith.ToList();
             ViewData["taskText"] = task.TaskText;
             ViewData["taskId"] = task.TaskID;
-            ViewData["userId"] = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
+            
             return View();
         }
 
@@ -100,11 +106,15 @@ namespace WebApp_GroupClaims_DotNet.Controllers
         {
             // If the share button was clicked, share the task with the user or group
             if (shareTasks != null && objectId != null && objectId != string.Empty && displayName != null && displayName != string.Empty)
+            {
                 TasksDbHelper.AddShare(taskId, objectId, displayName);
+            }
 
             // If a delete button was clicked, remove the share from the task
             if (delete != null && delete.Length > 0)
+            {
                 TasksDbHelper.DeleteShare(taskId, delete);
+            }
 
             return RedirectToAction("Share", new { id = taskId });
         }
