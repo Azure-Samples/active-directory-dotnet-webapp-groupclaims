@@ -1,7 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
+using System.Security.Claims;
+using WebApp_GroupClaims_DotNet.Utils;
 
 namespace WebApp_GroupClaims_DotNet.Models
 {
@@ -16,6 +15,30 @@ namespace WebApp_GroupClaims_DotNet.Models
                 return value + "/";
 
             return value;
+        }
+
+        public static string GetSignedInUsersIdFromClaims()
+        {
+            string signedInUsersId = string.Empty;
+
+            if (ClaimsPrincipal.Current != null)
+            {
+                signedInUsersId = ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier).Value;
+            }            
+
+            return signedInUsersId;
+        }
+
+        public static string GetSignedInObjectIdFromClaims()
+        {
+            string signedInUsersId = string.Empty;
+
+            if (ClaimsPrincipal.Current != null)
+            {
+                signedInUsersId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
+            }
+
+            return signedInUsersId;
         }
     }
 }

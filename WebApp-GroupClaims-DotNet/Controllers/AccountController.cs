@@ -2,7 +2,6 @@
 using Microsoft.Owin.Security;
 using Microsoft.Owin.Security.Cookies;
 using Microsoft.Owin.Security.OpenIdConnect;
-using System.Configuration;
 using System.Security.Claims;
 using System.Web;
 using System.Web.Mvc;
@@ -58,8 +57,7 @@ namespace WebApp_GroupClaims_DotNet.Controllers
         {
             if (this.Request.IsAuthenticated)
             {
-                string signedInUserId = ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier).Value;
-                AuthenticationContext authContext = new AuthenticationContext(AppConfig.Authority, new ADALTokenCache(signedInUserId));
+                AuthenticationContext authContext = new AuthenticationContext(AppConfig.Authority, new ADALTokenCache(Util.GetSignedInObjectIdFromClaims()));
                 authContext.TokenCache.Clear();
             }
         }

@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using System.Web;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using WebApp_GroupClaims_DotNet.Models;
 using ClaimTypes = System.IdentityModel.Claims.ClaimTypes;
 
 namespace WebApp_GroupClaims_DotNet.Utils
@@ -27,18 +26,18 @@ namespace WebApp_GroupClaims_DotNet.Utils
         /// Get Token for User.
         /// </summary>
         /// <returns>Token for user.</returns>
-        public async Task<string> GetAccessTokenForUserAsync(string resourceId, string replyUrl, string userIdentifier = "")
+        public async Task<string> GetAccessTokenForUserAsync(string resourceId, string replyUrl)
         {
             AuthenticationContext authContext = new AuthenticationContext(this.Authority, this.TokenCache);
             AuthenticationResult authResult = null;
             ClientCredential credential = new ClientCredential(AppConfig.ClientId, AppConfig.AppKey);
+
             try
             {
-                authResult = await authContext.AcquireTokenSilentAsync(resourceId, credential, new UserIdentifier(userIdentifier, UserIdentifierType.UniqueId));
+                authResult = await authContext.AcquireTokenSilentAsync(resourceId, credential, new UserIdentifier(Util.GetSignedInObjectIdFromClaims(), UserIdentifierType.UniqueId));
             }
             catch (AdalSilentTokenAcquisitionException)
             {
-                //authResult = await authContext.AcquireTokenAsync(resourceId, AppConfig.ClientId, new Uri(replyUrl), new PlatformParameters(PromptBehavior.Auto), new UserIdentifier(userIdentifier, UserIdentifierType.OptionalDisplayableId));
                 authResult = await authContext.AcquireTokenAsync(resourceId, AppConfig.ClientId, new Uri(AppConfig.PostLogoutRedirectUri), new PlatformParameters(PromptBehavior.Auto));
             }
             catch (AdalException ex)
@@ -75,7 +74,7 @@ namespace WebApp_GroupClaims_DotNet.Utils
             //
             ClientCredential clientCred = new ClientCredential(AppConfig.ClientId, AppConfig.AppKey);
 
-            if(ClaimsPrincipal.Current.Identities.First().BootstrapContext == null)
+            if (ClaimsPrincipal.Current.Identities.First().BootstrapContext == null)
             {
                 throw new Exception("BootstrapContext is null. Please modify the config 'saveSignInToken = true' to ensure that the original token is preserved.");
             }
@@ -105,7 +104,6 @@ namespace WebApp_GroupClaims_DotNet.Utils
             return accessToken;
         }
 
-
         public async Task<string> GetAccessTokenForAppAsync(string resourceId)
         {
             AuthenticationContext authContext = new AuthenticationContext(this.Authority);
@@ -123,6 +121,5 @@ namespace WebApp_GroupClaims_DotNet.Utils
 
             return authResult.AccessToken;
         }
-
     }
 }

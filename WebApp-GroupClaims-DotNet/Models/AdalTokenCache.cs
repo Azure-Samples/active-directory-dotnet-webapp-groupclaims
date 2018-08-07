@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using System;
 using System.Data.Entity;
 using System.Linq;
-using System.Web;
 using System.Web.Security;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using WebApp_GroupClaims_DotNet.Data;
 
 namespace WebApp_GroupClaims_DotNet.Models
@@ -26,7 +23,7 @@ namespace WebApp_GroupClaims_DotNet.Models
             // look up the entry in the database
             Cache = db.UserTokenCacheList.FirstOrDefault(c => c.webUserUniqueId == userId);
             // place the entry in memory
-            this.Deserialize((Cache == null) ? null : MachineKey.Unprotect(Cache.cacheBits,"ADALCache"));
+            this.Deserialize((Cache == null) ? null : MachineKey.Unprotect(Cache.cacheBits, "ADALCache"));
         }
 
         // clean up the database
@@ -40,7 +37,7 @@ namespace WebApp_GroupClaims_DotNet.Models
 
         // Notification raised before ADAL accesses the cache.
         // This is your chance to update the in-memory copy from the DB, if the in-memory version is stale
-        void BeforeAccessNotification(TokenCacheNotificationArgs args)
+        private void BeforeAccessNotification(TokenCacheNotificationArgs args)
         {
             if (Cache == null)
             {
@@ -48,14 +45,14 @@ namespace WebApp_GroupClaims_DotNet.Models
                 Cache = db.UserTokenCacheList.FirstOrDefault(c => c.webUserUniqueId == userId);
             }
             else
-            { 
+            {
                 // retrieve last write from the DB
                 var status = from e in db.UserTokenCacheList
                              where (e.webUserUniqueId == userId)
-                select new
-                {
-                    LastWrite = e.LastWrite
-                };
+                             select new
+                             {
+                                 LastWrite = e.LastWrite
+                             };
 
                 // if the in-memory copy is older than the persistent copy
                 if (status.First().LastWrite > Cache.LastWrite)
@@ -69,7 +66,7 @@ namespace WebApp_GroupClaims_DotNet.Models
 
         // Notification raised after ADAL accessed the cache.
         // If the HasStateChanged flag is set, ADAL changed the content of the cache
-        void AfterAccessNotification(TokenCacheNotificationArgs args)
+        private void AfterAccessNotification(TokenCacheNotificationArgs args)
         {
             // if state changed
             if (this.HasStateChanged)
@@ -85,14 +82,14 @@ namespace WebApp_GroupClaims_DotNet.Models
                 Cache.cacheBits = MachineKey.Protect(this.Serialize(), "ADALCache");
                 Cache.LastWrite = DateTime.Now;
 
-                // update the DB and the lastwrite 
+                // update the DB and the lastwrite
                 db.Entry(Cache).State = Cache.UserTokenCacheId == 0 ? EntityState.Added : EntityState.Modified;
                 db.SaveChanges();
                 this.HasStateChanged = false;
             }
         }
 
-        void BeforeWriteNotification(TokenCacheNotificationArgs args)
+        private void BeforeWriteNotification(TokenCacheNotificationArgs args)
         {
             // if you want to ensure that no concurrent write take place, use this notification to place a lock on the entry
         }

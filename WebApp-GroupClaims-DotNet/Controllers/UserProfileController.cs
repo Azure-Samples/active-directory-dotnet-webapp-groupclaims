@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using System.Web.Mvc;
-using WebApp_GroupClaims_DotNet.Data;
 using WebApp_GroupClaims_DotNet.Models;
 using WebApp_GroupClaims_DotNet.Utils;
 
@@ -17,21 +16,19 @@ namespace WebApp_GroupClaims_DotNet.Controllers
         // GET: UserProfile
         public async Task<ActionResult> Index()
         {
-            string signedInUserID = ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier).Value;
             try
             {
-                MSGraphClient msGraphClient = new MSGraphClient(AppConfig.Authority, new ADALTokenCache(signedInUserID));
+                MSGraphClient msGraphClient = new MSGraphClient(AppConfig.Authority, new ADALTokenCache(Util.GetSignedInObjectIdFromClaims()));
 
                 User user = await msGraphClient.GetMeAsync();
-                IList<Group> groups = await msGraphClient.GetCurrentUserGroupsAsync();
-                IList<DirectoryRole> directoryRoles = await msGraphClient.GetCurrentUserDirectoryRolesAsync();
+                UserGroupsAndDirectoryRoles userGroupsAndDirectoryRoles = await msGraphClient.GetCurrentUserGroupsAndRolesAsync();
 
-                bool hasOverageClaim = false;
-                IList<string> myGroups = TokenHelper.GetUsersGroups(ClaimsPrincipal.Current, out hasOverageClaim);
+                //IList<Group> groups = await msGraphClient.GetCurrentUserGroupsAsync();
+                //IList<DirectoryRole> directoryRoles = await msGraphClient.GetCurrentUserDirectoryRolesAsync();
 
-                ViewData["overageOccurred"] = hasOverageClaim;
-                ViewData["myGroups"] = groups;
-                ViewData["myDirectoryRoles"] = directoryRoles;
+                ViewData["overageOccurred"] = userGroupsAndDirectoryRoles.HasOverageClaim;
+                ViewData["myGroups"] = userGroupsAndDirectoryRoles.Groups;
+                ViewData["myDirectoryRoles"] = userGroupsAndDirectoryRoles.DirectoryRoles;
                 return View(user);
             }
             catch (AdalException)

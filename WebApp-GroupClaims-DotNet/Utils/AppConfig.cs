@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Linq;
-using System.Web;
+﻿using System.Configuration;
 using WebApp_GroupClaims_DotNet.Models;
 
 namespace WebApp_GroupClaims_DotNet.Utils
@@ -23,5 +19,7 @@ namespace WebApp_GroupClaims_DotNet.Utils
         public const string GraphResourceId = "https://graph.microsoft.com";
 
         public static string MSGraphBaseUrl = $"{GraphResourceId}/v1.0";
+
+        public static string AADGraphResourceId = "https://graph.windows.net";
     }
 }

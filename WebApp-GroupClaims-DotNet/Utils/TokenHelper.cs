@@ -1,33 +1,76 @@
-﻿using System;
-using System.Collections;
+﻿using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security.Claims;
-using System.Web;
+using System.Threading.Tasks;
 using System.Web.Helpers;
-using Microsoft.Graph;
-using Newtonsoft.Json.Linq;
 using WebApp_GroupClaims_DotNet.Models;
 
 namespace WebApp_GroupClaims_DotNet.Utils
 {
     public class TokenHelper
     {
-        public static IList<string> GetUsersGroups(ClaimsPrincipal subject, out bool hadOverageClaim)
+        public static async Task<UserGroupsAndDirectoryRoles> GetUsersGroupsAsync(ClaimsPrincipal subject)
         {
-            hadOverageClaim = HasGroupsOverageClaim(subject);
+            UserGroupsAndDirectoryRoles userGroupsAndDirectoryRoles = new UserGroupsAndDirectoryRoles();
+            userGroupsAndDirectoryRoles.HasOverageClaim = HasGroupsOverageClaim(subject);
             ClaimsIdentity userClaimsId = subject.Identity as ClaimsIdentity;
 
-            if (hadOverageClaim)
+            if (userGroupsAndDirectoryRoles.HasOverageClaim)
             {
-                string signedInUserId = subject.FindFirst(ClaimTypes.NameIdentifier).Value;
-                MSGraphClient graphClient = new MSGraphClient(AppConfig.Authority, new ADALTokenCache(signedInUserId));
-                return graphClient.GetCurrentUserGroupIdsAsync().Result;
+                userGroupsAndDirectoryRoles.GroupIds.AddRange(await GetUsersGroupsFromClaimSourcesAsync(userClaimsId));
             }
             else
             {
-                return userClaimsId.FindAll(SubjectAttribute.Groups).Select(c => c.Value).ToList();
+                userGroupsAndDirectoryRoles.GroupIds.AddRange(userClaimsId.FindAll(SubjectAttribute.Groups).Select(c => c.Value).ToList());
             }
+
+            return userGroupsAndDirectoryRoles;
+        }
+
+        private static async Task<IList<string>> GetUsersGroupsFromClaimSourcesAsync(ClaimsIdentity claimsIdentity)
+        {
+            List<string> groupObjectIds = new List<string>();
+            ClientCredential credential = new ClientCredential(AppConfig.ClientId, AppConfig.AppKey);
+
+            // Acquire the Access Token for AAD graph has the claim source still points to AAD graph
+            AuthenticationHelper authHelper = new AuthenticationHelper(AppConfig.Authority, new ADALTokenCache(Util.GetSignedInObjectIdFromClaims()));
+            var token = await authHelper.GetAccessTokenForUserAsync(AppConfig.AADGraphResourceId, AppConfig.PostLogoutRedirectUri);
+                      
+            // Get the GraphAPI Group Endpoint for the specific user from the _claim_sources claim in token
+            string groupsClaimSourceIndex = (Json.Decode(claimsIdentity.FindFirst("_claim_names").Value)).groups;
+            var groupClaimsSource = (Json.Decode(claimsIdentity.FindFirst("_claim_sources").Value))[groupsClaimSourceIndex];
+            string requestUrl = groupClaimsSource.endpoint + "?api-version=1.5";
+
+            // Prepare and Make the POST request
+            HttpClient client = new HttpClient();
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            StringContent content = new StringContent("{\"securityEnabledOnly\": \"true\"}");
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            request.Content = content;
+            HttpResponseMessage response = await client.SendAsync(request);
+
+            // Endpoint returns JSON with an array of Group ObjectIDs
+            if (response.IsSuccessStatusCode)
+            {
+                string responseContent = await response.Content.ReadAsStringAsync();
+                var groupsResult = (Json.Decode(responseContent)).value;
+
+                foreach (string groupObjectID in groupsResult)
+                    groupObjectIds.Add(groupObjectID);
+            }
+            else
+            {
+                throw new WebException();
+            }
+
+            return groupObjectIds;
         }
 
         internal static bool HasGroupsOverageClaim(ClaimsPrincipal subject)

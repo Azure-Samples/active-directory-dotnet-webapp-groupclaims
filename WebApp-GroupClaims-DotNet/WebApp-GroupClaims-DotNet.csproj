@@ -240,15 +240,18 @@
     <Compile Include="Controllers\TasksController.cs" />
     <Compile Include="Controllers\UserProfileController.cs" />
     <Compile Include="Data\GroupClaimContext.cs" />
+    <Compile Include="Data\TasksDbHelper.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Models\AadObject.cs" />
     <Compile Include="Models\AdalTokenCache.cs" />
     <Compile Include="Models\Task.cs" />
+    <Compile Include="Models\UserGroupsAndDirectoryRoles.cs" />
     <Compile Include="Models\UserTokenCache.cs" />
     <Compile Include="Utils\AppConfig.cs" />
     <Compile Include="Utils\AuthenticationHelper.cs" />
+    <Compile Include="Utils\Globals.cs" />
     <Compile Include="Utils\MSGraphClient.cs" />
     <Compile Include="Utils\SubjectAttribute.cs" />
     <Compile Include="Utils\TokenHelper.cs" />
@@ -303,10 +306,11 @@
     <Content Include="Views\UserProfile\Relogin.cshtml" />
     <Content Include="Views\Error\ReAuth.cshtml" />
     <Content Include="Views\Error\ShowError.cshtml" />
+    <Content Include="Views\Tasks\Index.cshtml" />
+    <Content Include="Views\Tasks\Share.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
-    <Folder Include="Views\Tasks\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="fonts\glyphicons-halflings-regular.woff2" />
