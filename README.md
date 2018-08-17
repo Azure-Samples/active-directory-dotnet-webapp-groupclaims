@@ -92,6 +92,7 @@ If you want to use this automation, read the instructions in [App Creation Scrip
   ...
 }
 ```
+4. To receive the `groups` claim with the objectId of the security groups, make sure that the user accounts you plan to sign-in in is assigned to a few security groups in this AAD tenant.
 
 ### Step 4:  Configure the sample to use your Azure AD tenant
 
@@ -104,7 +105,7 @@ Open the solution in Visual Studio to configure the projects
 1. Open the `WebApp-GroupClaims-DotNet\Web.Config` file
 1. Find the app key `ida:ClientId` and replace the existing value with the application ID (clientId) of the `TaskTrackerWebApp-GroupClaims` application copied from the Azure portal.
 1. Find the app key `ida:AppKey` and replace the existing value with the key you saved during the creation of the `TaskTrackerWebApp-GroupClaims` app, in the Azure portal.
-1. Find the app key `ida:Tenant` and replace the existing value with your Azure AD tenant name.
+1. Find the app key `ida:Domain` and replace the existing value with your Azure AD tenant's domain name.
 1. Find the app key `ida:PostLogoutRedirectUri` and replace the existing value with the base address of the TaskTrackerWebApp-GroupClaims project (by default `https://localhost:44322/`).
 
 ### Step 5:  Run the sample
@@ -121,7 +122,7 @@ To deploy this application to Azure, you will publish it to an Azure Website.
 
 1. Sign in to the [Azure portal](https://portal.azure.com).
 1.  Click **Create a resource** in the top left-hand corner, select **Web + Mobile** --> **Web App**, select the hosting plan and region, and give your web site a name, for example, `TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net`.  Click Create Web Site.
-1.Choose "SQL Database", click on "Create a new database", enter "GroupClaimContext" as the **DB Connection String Name**.
+1.Choose **SQL Database**, click on "Create a new database", enter `GroupClaimContext` as the **DB Connection String Name**.
 1. Select or create a database server, and enter server login credentials.
 1. Once the web site is created, click on it to manage it.  For this set of steps, download the publish profile by clicking **Get publish profile** and save it.  Other deployment mechanisms, such as from source control, can also be used.
 1. Switch to Visual Studio and go to the TaskTrackerWebApp-GroupClaims project.  Right click on the project in the Solution Explorer and select **Publish**.  Click **Import Profile** on the bottom bar, and import the publish profile that you downloaded earlier.
@@ -133,9 +134,10 @@ To deploy this application to Azure, you will publish it to an Azure Website.
 ## Code Walk-Through
 
 1. **UserProfileController** - Explore the code in this file on how to fetch a user's directory (App) roles and security group assignments.
-1. **AuthenticationHelper** - It has examples of how to obtain access tokens via the cache or from AAD.
-1. **MSGraphClient** - A small implementation of a client for [Microsoft Graph](https://graph.microsoft.com)
+1. **AuthenticationHelper** - It has examples of how to obtain access tokens from AAD and how to effectivel;y cache them.
+1. **MSGraphClient** - A small implementation of a client for [Microsoft Graph](https://graph.microsoft.com). Includes examples on how to call MS Graph endpoints and how to paginate through results.
 1. **TokenHelper** - This class has the code that shown you how to inspect the '_claim_names' and use the value in '_claim_sources' to fetch the security groups when an overage occurs.
+1. **TasksController** - Contains a few examples of how to use the security groups in the code.
 
 ## Community Help and Support
 

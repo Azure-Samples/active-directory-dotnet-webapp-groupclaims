@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [PSCredential] $Credential,
-    [Parameter(HelpMessage='Tenant ID (This is a GUID which represents the "Directory ID" of the AzureAD tenant into which you want to create the apps')]
+    [Parameter(Mandatory=$False, HelpMessage='Tenant ID (This is a GUID which represents the "Directory ID" of the AzureAD tenant into which you want to create the apps')]
     [string] $tenantId
 )
 
@@ -97,6 +97,42 @@ Function GetRequiredPermissions([string] $applicationDisplayName, [string] $requ
     return $requiredAccess
 }
 
+# Appends a permission in an existing RequiredResourceAccess object.
+# Exemple: AppendRequiredPermission "Microsoft Graph"  "Graph.Read|User.Read"
+Function AppendRequiredPermission([Microsoft.Open.AzureAD.Model.RequiredResourceAccess] $requiredAccess, [string] $applicationDisplayName, [string] $requiredDelegatedPermissions, [string]$requiredApplicationPermissions, $servicePrincipal)
+{
+    # If we are passed the service principal we use it directly, otherwise we find it from the display name (which might not be unique)
+    if ($servicePrincipal)
+    {
+        $sp = $servicePrincipal
+    }
+    else
+    {
+        $sp = Get-AzureADServicePrincipal -Filter "DisplayName eq '$applicationDisplayName'"
+    }
+    [string]$appid = $sp.AppId
+    
+    # Create a new RequiredResourceAccess object only if it does not belong to the same application as the permission ..    
+    if($requiredAccess.ResourceAppId -ne $appid)
+    {
+        $requiredAccess = New-Object Microsoft.Open.AzureAD.Model.RequiredResourceAccess
+        $requiredAccess.ResourceAppId = $appid 
+        $requiredAccess.ResourceAccess = New-Object System.Collections.Generic.List[Microsoft.Open.AzureAD.Model.ResourceAccess]
+    }
+    
+    # $sp.Oauth2Permissions | Select Id,AdminConsentDisplayName,Value: To see the list of all the Delegated permissions for the application:
+    if ($requiredDelegatedPermissions)
+    {
+        AddResourcePermission $requiredAccess -exposedPermissions $sp.Oauth2Permissions -requiredAccesses $requiredDelegatedPermissions -permissionType "Scope"
+    }
+    
+    # $sp.AppRoles | Select Id,AdminConsentDisplayName,Value: To see the list of all the Application permissions for the application
+    if ($requiredApplicationPermissions)
+    {
+        AddResourcePermission $requiredAccess -exposedPermissions $sp.AppRoles -requiredAccesses $requiredApplicationPermissions -permissionType "Role"
+    }
+}
+
 
 # Replace the value of an appsettings of a given key in an XML App.Config file.
 Function ReplaceSetting([string] $configFilePath, [string] $key, [string] $newValue)
@@ -156,13 +192,8 @@ Function ConfigureApplications
     $tenant = Get-AzureADTenantDetail
     $tenantName =  ($tenant.VerifiedDomains | Where { $_._Default -eq $True }).Name
 
-    $perm = [Microsoft.Open.AzureAD.Model.RequiredResourceAccess]@{
-    ResourceAppId  = "00000002-0000-0000-c000-000000000000"; # Windows Azure Active Directory/Microsoft.Azure.ActiveDirectory
-    ResourceAccess = [Microsoft.Open.AzureAD.Model.ResourceAccess]@{
-        Id   = "311a71cc-e848-46a1-bdf8-97ff7156d8e6"; #access scope: Delegated permission to sign in and read user profile
-        Type = "Scope"
-        }
-    }
+   $perm = GetRequiredPermissions  -applicationDisplayName "Microsoft Graph" `
+                                   -requiredDelegatedPermissions "User.Read";
    # Create the service AAD application
    Write-Host "Creating the AAD application (TaskTrackerWebApp-GroupClaims)"
    # Get a 2 years application key for the service Application
@@ -177,7 +208,6 @@ Function ConfigureApplications
                                                    -IdentifierUris "https://$tenantName/TaskTrackerWebApp-GroupClaims" `
                                                    -PasswordCredentials $key `
                                                    -RequiredResourceAccess $perm `
-                                                   -GroupMembershipClaims "All" `
                                                    -PublicClient $False
 
 
@@ -204,11 +234,14 @@ Function ConfigureApplications
    $requiredResourcesAccess.Add($requiredPermissions)
 
 
-   # Re-insert the existing Sign-in and read user profile permission to the permissions collection
-   $requiredResourcesAccess.Add($perm)
+   # Re-insert the existing Sign-in and read user profile permission to the permissions collection.
+   AppendRequiredPermission -requiredAccess $requiredPermissions `
+                            -applicationDisplayName "Microsoft Graph" `
+                            -requiredDelegatedPermissions "User.Read";
+
 
    Set-AzureADApplication -ObjectId $serviceAadApplication.ObjectId -RequiredResourceAccess $requiredResourcesAccess
-   Write-Host "Granted ."
+   Write-Host "Granted permissions."
 
    # Update config file for 'service'
    $configFile = $pwd.Path + "\..\WebApp-GroupClaims-DotNet\Web.Config"
@@ -218,6 +251,11 @@ Function ConfigureApplications
    ReplaceSetting -configFilePath $configFile -key "ida:Domain" -newValue $tenantName
    ReplaceSetting -configFilePath $configFile -key "ida:TenantId" -newValue $tenantId
    ReplaceSetting -configFilePath $configFile -key "ida:PostLogoutRedirectUri" -newValue $serviceAadApplication.HomePage
+   Write-Host ""
+   Write-Host "IMPORTANT: Think of completing the following manual step(s) in the Azure portal":
+   Write-Host "- For 'service'"
+   Write-Host "  - Navigate to '$servicePortalUrl'"
+   Write-Host "  - Follow the instructions in Readme oh how to change the manifest to include GroupMembershipClaims."
 
    Add-Content -Value "</tbody></table></body></html>" -Path createdApps.html  
 }
