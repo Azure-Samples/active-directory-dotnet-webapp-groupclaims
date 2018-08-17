@@ -1,5 +1,4 @@
-﻿using System.Web;
-using System.Web.Optimization;
+﻿using System.Web.Optimization;
 
 namespace WebApp_GroupClaims_DotNet
 {
@@ -9,7 +8,13 @@ namespace WebApp_GroupClaims_DotNet
         public static void RegisterBundles(BundleCollection bundles)
         {
             bundles.Add(new ScriptBundle("~/bundles/jquery").Include(
-                        "~/Scripts/jquery-{version}.js"));
+                "~/Scripts/jquery-{version}.js",
+                "~/Scripts/jquery-ui-1.12.1.js"
+                ));
+
+            bundles.Add(new ScriptBundle("~/Scripts/AadPickerLibrary").Include(
+                    "~/Scripts/AadPickerLibrary.js"
+                ));
 
             bundles.Add(new ScriptBundle("~/bundles/jqueryval").Include(
                         "~/Scripts/jquery.validate*"));
@@ -20,7 +25,8 @@ namespace WebApp_GroupClaims_DotNet
                         "~/Scripts/modernizr-*"));
 
             bundles.Add(new ScriptBundle("~/bundles/bootstrap").Include(
-                      "~/Scripts/bootstrap.js"));
+                "~/Scripts/bootstrap.js",
+                "~/Scripts/respond.js"));
 
             bundles.Add(new StyleBundle("~/Content/css").Include(
                       "~/Content/bootstrap.css",

@@ -31,8 +31,7 @@
 
         function ConstructUserQuery(inputValue) {
 
-            var url = graphLoc + '/' + tenant + "/users?api-version="
-                + apiVersion + "&$top=" + resultsPerPage;
+            var url = graphLoc + "/v1.0/users?&$top=" + resultsPerPage;
 
             if (inputValue.length > 0) {
                 url += "&$filter=" +
@@ -55,8 +54,7 @@
 
         function ConstructGroupQuery(inputValue) {
 
-            var url = graphLoc + '/' + tenant + "/groups?api-version="
-                + apiVersion + "&$top=" + resultsPerPage;
+            var url = graphLoc + "/v1.0/groups?&$top=" + resultsPerPage;
 
             if (inputValue.length > 0) {
                 url += "&$filter=" +

@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ***********************************************************************************************/
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -107,9 +108,9 @@ namespace WebApp_GroupClaims_DotNet.Controllers
             string userObjectId = Util.GetSignedInUsersObjectIdFromClaims();
             userGroupsAndId.Add(userObjectId);
 
-            ViewData["tasks"] = TasksDbHelper.GetAllTasks(userGroupsAndId);            
+            ViewData["tasks"] = TasksDbHelper.GetAllTasks(userGroupsAndId);
             ViewData["userId"] = userObjectId;
-                        
+
             // Get the task details
             WebApp_GroupClaims_DotNet.Models.Task task = TasksDbHelper.GetTask(Convert.ToInt32(id));
             if (task == null)
@@ -120,7 +121,7 @@ namespace WebApp_GroupClaims_DotNet.Controllers
             ViewData["shares"] = task.SharedWith.ToList();
             ViewData["taskText"] = task.TaskText;
             ViewData["taskId"] = task.TaskID;
-            
+
             return View();
         }
 

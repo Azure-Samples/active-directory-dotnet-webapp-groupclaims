@@ -20,11 +20,13 @@ namespace WebApp_GroupClaims_DotNet
 
             app.UseCookieAuthentication(new CookieAuthenticationOptions());
 
+            //Configure OpenIDConnect, register callbacks for OpenIDConnect Notifications
             app.UseOpenIdConnectAuthentication(
                 new OpenIdConnectAuthenticationOptions
                 {
                     ClientId = AppConfig.ClientId,
                     Authority = AppConfig.Authority,
+                    RedirectUri = "https://localhost:44322/",
                     PostLogoutRedirectUri = AppConfig.PostLogoutRedirectUri,
 
                     TokenValidationParameters = new TokenValidationParameters
