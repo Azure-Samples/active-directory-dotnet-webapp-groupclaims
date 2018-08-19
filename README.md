@@ -13,12 +13,15 @@ endpoint: AAD V1
 ## About this sample
 
 ### Overview
-This sample shows how to build an MVC web application that uses Azure AD Groups for authorization.  Authorization in Azure AD can also be done with Application Roles, as shown in [WebApp-RoleClaims-DotNet](https://github.com/Azure-Samples/active-directory-dotnet-webapp-roleclaims). This sample uses the OpenID Connect ASP.Net OWIN middleware and ADAL .Net.
+This sample shows how to build an MVC web application that uses Azure AD Groups for authorization.  Authorization in Azure AD can also be done with Application Roles, as shown in [WebApp-RoleClaims-DotNet](https://github.com/Azure-Samples/active-directory-dotnet-webapp-roleclaims). This sample uses the OpenID Connect ASP.Net OWIN middleware and [ADAL.Net](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-authentication-libraries).
 
+- An Azure AD Office Hours session covered Azure AD Approles and security groups, featuring this scenario and this sample. Watch the video [Using Security Groups and Application Roles in your apps](https://www.youtube.com/watch?v=V8VUPixLSiM)
 
 For more information about how the protocols work in this scenario and other scenarios, see [Authentication Scenarios for Azure AD](http://go.microsoft.com/fwlink/?LinkId=394414).
 
 > Looking for previous versions of this code sample? Check out the tags on the [releases](../../releases) GitHub page.
+
+![Overview](./ReadmeFiles/topology.png)
 
 ### Scenario
 
@@ -130,14 +133,86 @@ To deploy this application to Azure, you will publish it to an Azure Website.
 1. On the Settings tab, make sure `Enable Organizational Authentication` is NOT selected.  Click **Save**. Click on **Publish** on the main screen.
 1. Visual Studio will publish the project and automatically open a browser to the URL of the project.  If you see the default web page of the project, the publication was successful.
 
+## Processing Groups claim in tokens
+
+### The `groups` claim.
+The object id of the security groups the signed in user is member of is returned in the `groups` claim of the token.
+```JSON
+{
+  ...
+  "groups": [
+    "0bbe91cc-b69e-414d-85a6-a043d6752215",
+    "48931dac-3736-45e7-83e8-015e6dfd6f7c",]
+  ...
+}
+```
+
+### Groups overage claim
+To ensure that the token size doesn’t exceed HTTP header size limits, Azure AD limits the number of object Ids that it includes in the groups claim.
+If a user is member of more groups than the overage limit (150 for SAML tokens, 200 for JWT tokens), then Azure AD does not emit the groups claim in the token. 
+Instead, it includes an overage claim in the token that indicates to the application to query the Graph API to retrieve the user’s group membership.
+
+```JSON
+{
+  ...
+  "_claim_names": {
+    "groups": "src1"
+    },
+    {
+   "_claim_sources": {
+    "src1": {
+        "endpoint":"[Graph Url to get this user's group membership from]"
+        }
+    }    
+  ...
+}
+```
+
+### Support in ASP.NET OWIN middleware libraries 
+The asp.net middleware supports roles populated from claims by specifying the claim in the `RoleClaimType` property of `TokenValidationParameters`. 
+Since the `groups` claim contains the object ids of the security groups than actual names, the following code will not work. 
+
+```C#
+// Startup.Auth.cs
+public void ConfigureAuth(IAppBuilder app)         
+{             
+	app.SetDefaultSignInAsAuthenticationType(CookieAuthenticationDefaults.AuthenticationType);             
+	app.UseCookieAuthentication(new CookieAuthenticationOptions());             
+
+	//Configure OpenIDConnect, register callbacks for OpenIDConnect Notifications             
+	app.UseOpenIdConnectAuthentication(                 
+	new OpenIdConnectAuthenticationOptions                 
+	{                     
+		ClientId = ConfigHelper.ClientId,                     
+		Authority = String.Format(CultureInfo.InvariantCulture, ConfigHelper.AadInstance, ConfigHelper.Tenant), 
+	            PostLogoutRedirectUri = ConfigHelper.PostLogoutRedirectUri,                     
+		TokenValidationParameters = new System.IdentityModel.Tokens.TokenValidationParameters                     
+		{                         
+			ValidateIssuer = false,                          
+			RoleClaimType = "groups",                     
+		},                     
+		
+		// [removed for] brevity
+               });         
+}
+
+
+// In code..(Controllers & elsewhere)
+[Authorize(Roles = “AlicesGroup")]    
+// or
+User.IsInRole("AlicesGroup"); 
+
+```
+You’d have to either write your own IAuthorizationFilter or override User.IsInRole to use Azure AD security groups in your code.
 
 ## Code Walk-Through
 
-1. **UserProfileController** - Explore the code in this file on how to fetch a user's directory (App) roles and security group assignments.
-1. **AuthenticationHelper** - It has examples of how to obtain access tokens from AAD and how to effectivel;y cache them.
-1. **MSGraphClient** - A small implementation of a client for [Microsoft Graph](https://graph.microsoft.com). Includes examples on how to call MS Graph endpoints and how to paginate through results.
-1. **TokenHelper** - This class has the code that shown you how to inspect the '_claim_names' and use the value in '_claim_sources' to fetch the security groups when an overage occurs.
-1. **TasksController** - Contains a few examples of how to use the security groups in the code.
+1. **UserProfileController.cs** - Explore the code in this file on how to fetch a user's directory (App) roles and security group assignments.
+1. **AuthenticationHelper.cs** - It has examples of how to obtain access tokens from AAD and how to effectivel;y cache them.
+1. **MSGraphClient.cs** - A small implementation of a client for [Microsoft Graph](https://graph.microsoft.com). Includes examples on how to call MS Graph endpoints and how to paginate through results.
+1. **TokenHelper.cs** - This class has the code that shown you how to inspect the '_claim_names' and use the value in '_claim_sources' to fetch the security groups when an overage occurs.
+1. **TasksController.cs** - Contains a few examples of how to use the security groups in the code.
+1. **MSGraphPickerLibrary.js** - A client side javascript library that calls [Microsoft Graph](https://graph.microsoft.com) and fetches Groups and Users.
 
 ## Community Help and Support
 
@@ -158,7 +233,6 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 ## More information
 
 For more information, see [Azure Active Directory, now with Group Claims and Application Roles] (https://cloudblogs.microsoft.com/enterprisemobility/2014/12/18/azure-active-directory-now-with-group-claims-and-application-roles/)
-
 
 - [Application roles](https://docs.microsoft.com/en-us/azure/architecture/multitenant-identity/app-roles)
 - [Azure AD Connect sync: Understanding Users, Groups, and Contacts](https://docs.microsoft.com/en-us/azure/active-directory/connect/active-directory-aadconnectsync-understanding-users-and-contacts)
