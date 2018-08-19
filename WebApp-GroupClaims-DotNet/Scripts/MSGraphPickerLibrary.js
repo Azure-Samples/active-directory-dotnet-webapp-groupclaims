@@ -139,23 +139,25 @@
                             currentResults = [];
                         }
 
-                        for (var i = 0; i < usersAndGroups.length; i++) {
+                        var userslist = userQ[0].value;
+                        for (var i = 0; i < userslist.length; i++) {
+                            currentResults.push({
+                                label: userslist[i].displayName,
+                                value: userslist[i].displayName,
+                                objectId: userslist[i].id,
+                                objectType: userLabel,
+                            });
+                        }
 
-                            if (usersAndGroups[i].objectType == "User") {
-                                currentResults.push({
-                                    label: usersAndGroups[i].displayName,
-                                    value: usersAndGroups[i].displayName,
-                                    objectId: usersAndGroups[i].objectId,
-                                    objectType: userLabel,
-                                });
-                            } else if (usersAndGroups[i].objectType == "Group") {
-                                currentResults.push({
-                                    label: usersAndGroups[i].displayName,
-                                    value: usersAndGroups[i].displayName,
-                                    objectId: usersAndGroups[i].objectId,
-                                    objectType: groupLabel,
-                                });
-                            }
+                        var groupslist = groupQ[0].value;
+
+                        for (var i = 0; i < groupslist.length; i++) {
+                            currentResults.push({
+                                label: groupslist[i].displayName,
+                                value: groupslist[i].displayName,
+                                objectId: groupslist[i].id,
+                                objectType: groupLabel,
+                            });
                         }
                     }
                     else {

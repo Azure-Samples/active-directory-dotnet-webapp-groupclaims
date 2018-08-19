@@ -12,8 +12,8 @@ namespace WebApp_GroupClaims_DotNet
                 "~/Scripts/jquery-ui-1.12.1.js"
                 ));
 
-            bundles.Add(new ScriptBundle("~/Scripts/AadPickerLibrary").Include(
-                    "~/Scripts/AadPickerLibrary.js"
+            bundles.Add(new ScriptBundle("~/Scripts/MSGraphPickerLibrary").Include(
+                    "~/Scripts/MSGraphPickerLibrary.js"
                 ));
 
             bundles.Add(new ScriptBundle("~/bundles/jqueryval").Include(
