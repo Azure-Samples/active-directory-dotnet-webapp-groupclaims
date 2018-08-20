@@ -8,7 +8,7 @@ endpoint: AAD V1
 ---
 # Authorization in a web app using Azure AD groups & group claims
 
-![Build badge](https://identitydivision.visualstudio.com/_apis/public/build/definitions/a7934fdd-dcde-4492-a406-7fad6ac00e17/<BuildNumber>/badge)
+[![Build badge](https://identitydivision.visualstudio.com/_apis/public/build/definitions/a7934fdd-dcde-4492-a406-7fad6ac00e17/630/badge)](https://identitydivision.visualstudio.com/IDDP/_build/latest?definitionId=643)
 
 ## About this sample
 
@@ -95,7 +95,7 @@ If you want to use this automation, read the instructions in [App Creation Scrip
   ...
 }
 ```
-4. To receive the `groups` claim with the objectId of the security groups, make sure that the user accounts you plan to sign-in in is assigned to a few security groups in this AAD tenant.
+4. To receive the `groups` claim with the object id of the security groups, make sure that the user accounts you plan to sign-in in is assigned to a few security groups in this AAD tenant.
 
 ### Step 4:  Configure the sample to use your Azure AD tenant
 
@@ -115,9 +115,9 @@ Open the solution in Visual Studio to configure the projects
 
 Clean the solution, rebuild the solution, and run it!  Explore the sample by signing in, navigating to different pages, adding tasks, signing out, etc.  Create several user accounts in the Azure Management Portal, and create tasks as each different user.  Create a Security Group in the Azure Management Portal, add users to it, and share tasks with the security group.
 
-Click on the user's login name on the top right corner to get a list of all the groups and roles that a user is part of.
+Click on `share` link to share a taslk with another user or a security group. 
 
-You can use the `BulkCreateGroups.ps1` provided in the [App Creation Scripts](./AppCreationScripts/) folder to help test overage scenarios.
+Click on the user's login name on the top right corner (user@domain.com) to get a list of all the groups and roles that a user is part of. This page fetches the data from [Microsoft Graph](https://graph.microsoft.com).
 
 ## Deploy this Sample to Azure
 
@@ -167,6 +167,7 @@ Instead, it includes an overage claim in the token that indicates to the applica
   ...
 }
 ```
+You can use the `BulkCreateGroups.ps1` provided in the [App Creation Scripts](./AppCreationScripts/) folder to help test overage scenarios.
 
 ### Support in ASP.NET OWIN middleware libraries 
 The asp.net middleware supports roles populated from claims by specifying the claim in the `RoleClaimType` property of `TokenValidationParameters`. 
@@ -193,7 +194,7 @@ public void ConfigureAuth(IAppBuilder app)         
 		},                     
 		
 		// [removed for] brevity
-               });         
+    });         
 }
 
 
