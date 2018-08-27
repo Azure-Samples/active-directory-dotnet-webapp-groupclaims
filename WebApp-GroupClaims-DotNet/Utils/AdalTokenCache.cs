@@ -28,8 +28,9 @@ using System.Data.Entity;
 using System.Linq;
 using System.Web.Security;
 using WebApp_GroupClaims_DotNet.Data;
+using WebApp_GroupClaims_DotNet.Models;
 
-namespace WebApp_GroupClaims_DotNet.Models
+namespace WebApp_GroupClaims_DotNet.Utils
 {
     public class ADALTokenCache : TokenCache
     {

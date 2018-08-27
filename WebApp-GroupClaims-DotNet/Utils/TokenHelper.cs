@@ -1,4 +1,28 @@
-﻿using Microsoft.IdentityModel.Clients.ActiveDirectory;
+﻿/************************************************************************************************
+The MIT License (MIT)
+
+Copyright (c) 2015 Microsoft Corporation
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+***********************************************************************************************/
+
+using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -35,11 +59,11 @@ namespace WebApp_GroupClaims_DotNet.Utils
         private static async Task<IList<string>> GetUsersGroupsFromClaimSourcesAsync(ClaimsIdentity claimsIdentity)
         {
             List<string> groupObjectIds = new List<string>();
-            ClientCredential credential = new ClientCredential(AppConfig.ClientId, AppConfig.AppKey);
+            ClientCredential credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
 
             // Acquire the Access Token for AAD graph has the claim source still points to AAD graph
-            AuthenticationHelper authHelper = new AuthenticationHelper(AppConfig.Authority, new ADALTokenCache(Util.GetSignedInUsersObjectIdFromClaims()));
-            var token = await authHelper.GetAccessTokenForUserAsync(AppConfig.AADGraphResourceId, AppConfig.PostLogoutRedirectUri);
+            AuthenticationHelper authHelper = new AuthenticationHelper(ConfigHelper.Authority, new ADALTokenCache(Util.GetSignedInUsersObjectIdFromClaims()));
+            var token = await authHelper.GetAccessTokenForUserAsync(ConfigHelper.AADGraphResourceId, ConfigHelper.PostLogoutRedirectUri);
                       
             // Get the GraphAPI Group Endpoint for the specific user from the _claim_sources claim in token
             string groupsClaimSourceIndex = (Json.Decode(claimsIdentity.FindFirst("_claim_names").Value)).groups;

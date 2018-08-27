@@ -248,11 +248,11 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Models\AadObject.cs" />
-    <Compile Include="Models\AdalTokenCache.cs" />
+    <Compile Include="Utils\AdalTokenCache.cs" />
     <Compile Include="Models\Task.cs" />
     <Compile Include="Models\UserGroupsAndDirectoryRoles.cs" />
     <Compile Include="Models\UserTokenCache.cs" />
-    <Compile Include="Utils\AppConfig.cs" />
+    <Compile Include="Utils\ConfigHelper.cs" />
     <Compile Include="Utils\AuthenticationHelper.cs" />
     <Compile Include="Utils\Globals.cs" />
     <Compile Include="Utils\MSGraphClient.cs" />

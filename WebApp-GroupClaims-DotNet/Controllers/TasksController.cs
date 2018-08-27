@@ -96,11 +96,11 @@ namespace WebApp_GroupClaims_DotNet.Controllers
         [Authorize]
         public async Task<ActionResult> Share(string id)
         {
-            AuthenticationHelper authHelper = new AuthenticationHelper(AppConfig.Authority, new ADALTokenCache(Util.GetSignedInUsersObjectIdFromClaims()));
+            AuthenticationHelper authHelper = new AuthenticationHelper(ConfigHelper.Authority, new ADALTokenCache(Util.GetSignedInUsersObjectIdFromClaims()));
 
             // Values Needed for the People Picker
-            ViewData["tenant"] = AppConfig.TenantId;
-            ViewData["token"] = await authHelper.GetAccessTokenForUserAsync(AppConfig.GraphResourceId, AppConfig.PostLogoutRedirectUri);
+            ViewData["tenant"] = ConfigHelper.TenantId;
+            ViewData["token"] = await authHelper.GetAccessTokenForUserAsync(ConfigHelper.GraphResourceId, ConfigHelper.PostLogoutRedirectUri);
 
             UserGroupsAndDirectoryRoles userGroupsAndDirectoryRoles = await TokenHelper.GetUsersGroupsAsync(ClaimsPrincipal.Current);
             List<string> userGroupsAndId = userGroupsAndDirectoryRoles.GroupIds;

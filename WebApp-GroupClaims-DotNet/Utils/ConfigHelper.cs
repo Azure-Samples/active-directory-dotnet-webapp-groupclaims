@@ -22,25 +22,28 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ***********************************************************************************************/
 
-using System;
-using System.Collections.Generic;
+using System.Configuration;
+using WebApp_GroupClaims_DotNet.Models;
 
 namespace WebApp_GroupClaims_DotNet.Utils
 {
-    public static class Globals
+    /// <summary>
+    /// Wraps the configuration
+    /// </summary>
+    public static class ConfigHelper
     {
-        private static string objectIdClaimType = "http://schemas.microsoft.com/identity/claims/objectidentifier";
-        private const string tenantIdClaimType = "http://schemas.microsoft.com/identity/claims/tenantid";
-        private const string surnameClaimType = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname";
-        private const string givennameClaimType = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname";
-        private static List<String> roles = new List<String>(new String[4] { "Admin", "Observer", "Writer", "Approver" });
-        private static List<String> taskStatuses = new List<String>(new String[4] { "NotStarted", "InProgress", "Complete", "Blocked" });
+        public static string AADInstance { get; } = Util.EnsureTrailingSlash(ConfigurationManager.AppSettings["ida:AADInstance"]);
+        public static string AppKey { get; } = ConfigurationManager.AppSettings["ida:ClientSecret"];
+        public static string ClientId { get; } = ConfigurationManager.AppSettings["ida:ClientId"];
+        public static string PostLogoutRedirectUri { get; } = ConfigurationManager.AppSettings["ida:PostLogoutRedirectUri"];
+        public static string TenantId { get; } = ConfigurationManager.AppSettings["ida:TenantId"];
 
-        internal static string ObjectIdClaimType { get { return objectIdClaimType; } }
-        internal static string TenantIdClaimType { get { return tenantIdClaimType; } }
-        internal static string SurnameClaimType { get { return surnameClaimType; } }
-        internal static string GivennameClaimType { get { return givennameClaimType; } }
-        public static List<String> Roles { get { return roles; } }
-        public static List<String> Statuses { get { return taskStatuses; } }
+        public static string Authority = AADInstance + TenantId;
+
+        public const string GraphResourceId = "https://graph.microsoft.com";
+
+        public static string MSGraphBaseUrl = $"{GraphResourceId}/v1.0";
+
+        public static string AADGraphResourceId = "https://graph.windows.net";
     }
 }
