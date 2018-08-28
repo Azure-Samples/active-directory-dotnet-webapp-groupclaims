@@ -8,7 +8,7 @@ endpoint: AAD V1
 ---
 # Authorization in a web app using Azure AD groups & group claims
 
-[![Build badge](https://identitydivision.visualstudio.com/_apis/public/build/definitions/a7934fdd-dcde-4492-a406-7fad6ac00e17/630/badge)](https://identitydivision.visualstudio.com/IDDP/_build/latest?definitionId=643)
+![Build badge](https://identitydivision.visualstudio.com/_apis/public/build/definitions/a7934fdd-dcde-4492-a406-7fad6ac00e17/643/badge)
 
 ## About this sample
 
