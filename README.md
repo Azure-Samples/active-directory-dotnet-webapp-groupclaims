@@ -111,7 +111,7 @@ Open the solution in Visual Studio to configure the projects
 1. Find the app key `ida:Domain` and replace the existing value with your Azure AD tenant's domain name.
 1. Find the app key `ida:PostLogoutRedirectUri` and replace the existing value with the base address of the TaskTrackerWebApp-GroupClaims project (by default `https://localhost:44322/`).
 
-### Step 5:  Run the sample
+### Step 5: Run the sample
 
 Clean the solution, rebuild the solution, and run it!  Explore the sample by signing in, navigating to different pages, adding tasks, signing out, etc.  Create several user accounts in the Azure Management Portal, and create tasks as each different user.  Create a Security Group in the Azure Management Portal, add users to it, and share tasks with the security group.
 
@@ -132,6 +132,14 @@ To deploy this application to Azure, you will publish it to an Azure Website.
 1. Click on **Settings** and in the `Connection tab`, update the Destination URL so that it is https, for example [https://TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net](https://TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net). Click Next.
 1. On the Settings tab, make sure `Enable Organizational Authentication` is NOT selected.  Click **Save**. Click on **Publish** on the main screen.
 1. Visual Studio will publish the project and automatically open a browser to the URL of the project.  If you see the default web page of the project, the publication was successful.
+
+### Update the Active Directory tenant application registration for `TaskTrackerWebApp-GroupClaims`
+
+1. Navigate to the [Azure portal](https://portal.azure.com).
+1. On the top bar, click on your account and under the **Directory** list, choose the Active Directory tenant containing the `TaskTrackerWebApp-GroupClaims` application.
+1. On the applications tab, select the `TaskTrackerWebApp-GroupClaims` application.
+1. In the **Settings** | page for your application, update the Logout URL fields with the address of your service, for example [https://TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net](https://TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net)
+1. From the Settings -> Reply URLs menu, update the Sign-On URL, and Reply URL fields to the address of your service, for example [https://TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net](https://TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net). Save the configuration.
 
 ## Processing Groups claim in tokens
 
@@ -217,9 +225,9 @@ You’d have to either write your own IAuthorizationFilter or override User.IsIn
 
 ## Community Help and Support
 
-Use [Stack Overflow](http://stackoverflow.com/questions/tagged/adal) to get support from the community.
+Use [Stack Overflow](http://stackoverflow.com/questions/tagged/azuread) to get support from the community.
 Ask your questions on Stack Overflow first and browse existing issues to see if someone has asked your question before.
-Make sure that your questions or comments are tagged with [`adal` `dotnet`].
+Make sure that your questions or comments are tagged with [`adal` `azuread`].
 
 If you find a bug in the sample, please raise the issue on [GitHub Issues](../../issues).
 
