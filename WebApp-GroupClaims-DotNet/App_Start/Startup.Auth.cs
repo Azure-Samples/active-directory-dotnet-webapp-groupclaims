@@ -64,9 +64,8 @@ namespace WebApp_GroupClaims_DotNet
                         AuthorizationCodeReceived = (context) =>
                         {
                             var code = context.Code;
-                            ClientCredential credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
-                            string userObjectId = context.AuthenticationTicket.Identity.FindFirst(Globals.ObjectIdClaimType).Value;
-                            AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority, new ADALTokenCache(userObjectId));
+                            ClientCredential credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);                            
+                            AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority, new ADALTokenCache(Util.GetSignedInUsersObjectIdFromClaims()));
 
                             AuthenticationResult result = authContext.AcquireTokenByAuthorizationCodeAsync(
                                 code, new Uri(HttpContext.Current.Request.Url.GetLeftPart(UriPartial.Path)), credential, ConfigHelper.GraphResourceId).Result;

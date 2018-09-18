@@ -61,8 +61,6 @@ namespace WebApp_GroupClaims_DotNet.Controllers
         public void EndSession()
         {
             this.RemoveCachedTokens();
-
-            this.HttpContext.GetOwinContext().Authentication.SignOut(CookieAuthenticationDefaults.AuthenticationType);
         }
 
         public ActionResult SignOutCallback()
@@ -78,11 +76,8 @@ namespace WebApp_GroupClaims_DotNet.Controllers
         /// </summary>
         private void RemoveCachedTokens()
         {
-            if (this.Request.IsAuthenticated)
-            {
-                AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority, new ADALTokenCache(Util.GetSignedInUsersObjectIdFromClaims()));
-                authContext.TokenCache.Clear();
-            }
+            AuthenticationContext authContext = new AuthenticationContext(ConfigHelper.Authority, new ADALTokenCache(Util.GetSignedInUsersObjectIdFromClaims()));
+            authContext.TokenCache.Clear();
         }
     }
 }

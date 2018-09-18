@@ -13,9 +13,12 @@ endpoint: AAD V1
 ## About this sample
 
 ### Overview
+
 This sample shows how to build an MVC web application that uses Azure AD Groups for authorization.  Authorization in Azure AD can also be done with Application Roles, as shown in [WebApp-RoleClaims-DotNet](https://github.com/Azure-Samples/active-directory-dotnet-webapp-roleclaims). This sample uses the OpenID Connect ASP.Net OWIN middleware and [ADAL.Net](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-authentication-libraries).
 
-- An Azure AD Office Hours session covered Azure AD Approles and security groups, featuring this scenario and this sample. Watch the video [Using Security Groups and Application Roles in your apps](https://www.youtube.com/watch?v=V8VUPixLSiM)
+> An Azure AD Office Hours session covered Azure AD Approles and security groups, featuring this scenario and this sample. Watch the video [Using Security Groups and Application Roles in your apps](https://www.youtube.com/watch?v=V8VUPixLSiM)
+
+> The [v2 endpoint](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-appmodel-v2-overviewf Azure ) of Azure Active Directory does not yet supports groups claims in its token.
 
 For more information about how the protocols work in this scenario and other scenarios, see [Authentication Scenarios for Azure AD](http://go.microsoft.com/fwlink/?LinkId=394414).
 
