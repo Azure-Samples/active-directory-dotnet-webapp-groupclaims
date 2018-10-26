@@ -83,7 +83,15 @@ namespace WebApp_GroupClaims_DotNet.Utils
             string userId = ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier).Value;
             AuthenticationContext authContext = new AuthenticationContext(this.Authority, this.TokenCache);
 
-            result = await authContext.AcquireTokenAsync(resourceId, clientCred, userAssertion);
+            try
+            {
+                result = await authContext.AcquireTokenSilentAsync(resourceId, clientCred, new UserIdentifier(Util.GetSignedInUsersObjectIdFromClaims(), UserIdentifierType.UniqueId));
+            }
+            catch(AdalException ex)
+            {
+                result = await authContext.AcquireTokenAsync(resourceId, clientCred, userAssertion);
+            }
+
             accessToken = result.AccessToken;
             return accessToken;
         }
