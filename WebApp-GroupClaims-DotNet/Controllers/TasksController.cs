@@ -100,7 +100,7 @@ namespace WebApp_GroupClaims_DotNet.Controllers
 
             // Values Needed for the People Picker
             ViewData["tenant"] = ConfigHelper.TenantId;
-            ViewData["token"] = await authHelper.GetAccessTokenForUserAsync(ConfigHelper.GraphResourceId, ConfigHelper.PostLogoutRedirectUri);
+            ViewData["token"] = await authHelper.GetOnBehalfOfAccessToken(ConfigHelper.GraphResourceId, ConfigHelper.PostLogoutRedirectUri);
 
             UserGroupsAndDirectoryRoles userGroupsAndDirectoryRoles = await TokenHelper.GetUsersGroupsAsync(ClaimsPrincipal.Current);
             List<string> userGroupsAndId = userGroupsAndDirectoryRoles.GroupIds;

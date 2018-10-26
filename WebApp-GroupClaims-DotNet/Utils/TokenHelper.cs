@@ -63,7 +63,7 @@ namespace WebApp_GroupClaims_DotNet.Utils
 
             // Acquire the Access Token for AAD graph has the claim source still points to AAD graph
             AuthenticationHelper authHelper = new AuthenticationHelper(ConfigHelper.Authority, new ADALTokenCache(Util.GetSignedInUsersObjectIdFromClaims()));
-            var token = await authHelper.GetAccessTokenForUserAsync(ConfigHelper.AADGraphResourceId, ConfigHelper.PostLogoutRedirectUri);
+            var token = await authHelper.GetOnBehalfOfAccessToken(ConfigHelper.AADGraphResourceId, ConfigHelper.PostLogoutRedirectUri);
                       
             // Get the GraphAPI Group Endpoint for the specific user from the _claim_sources claim in token
             string groupsClaimSourceIndex = (Json.Decode(claimsIdentity.FindFirst("_claim_names").Value)).groups;

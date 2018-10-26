@@ -47,7 +47,7 @@ namespace WebApp_GroupClaims_DotNet.Models
 
             if (ClaimsPrincipal.Current != null)
             {
-                signedInUsersId = ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier).Value;
+                signedInUsersId = ClaimsPrincipal.Current.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             }            
 
             return signedInUsersId;
@@ -59,7 +59,7 @@ namespace WebApp_GroupClaims_DotNet.Models
 
             if (ClaimsPrincipal.Current != null)
             {
-                signedInUsersId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType).Value;
+                signedInUsersId = ClaimsPrincipal.Current.FindFirst(Globals.ObjectIdClaimType)?.Value;
             }
 
             return signedInUsersId;

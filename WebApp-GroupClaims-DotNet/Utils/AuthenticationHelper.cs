@@ -45,48 +45,8 @@ namespace WebApp_GroupClaims_DotNet.Utils
             this.Authority = authority;
             this.TokenCache = tokenCache;
         }
-
-        /// <summary>
-        /// Get Token for User.
-        /// </summary>
-        /// <returns>Token for user.</returns>
-        public async Task<string> GetAccessTokenForUserAsync(string resourceId, string replyUrl)
-        {
-            AuthenticationContext authContext = new AuthenticationContext(this.Authority, this.TokenCache);
-            AuthenticationResult authResult = null;
-            ClientCredential credential = new ClientCredential(ConfigHelper.ClientId, ConfigHelper.AppKey);
-
-            try
-            {
-                authResult = await authContext.AcquireTokenSilentAsync(resourceId, credential, new UserIdentifier(Util.GetSignedInUsersObjectIdFromClaims(), UserIdentifierType.UniqueId));
-            }
-            catch (AdalSilentTokenAcquisitionException)
-            {
-                authResult = await authContext.AcquireTokenAsync(resourceId, ConfigHelper.ClientId, new Uri(ConfigHelper.PostLogoutRedirectUri), new PlatformParameters(PromptBehavior.Auto));
-            }
-            catch (AdalException ex)
-            {
-                if (ex.ErrorCode == "authentication_canceled")
-                {
-                    throw new Exception("Sign in was canceled by the user");
-                }
-                else
-                {
-                    // An unexpected error occurred.
-                    string message = ex.Message;
-                    if (ex.InnerException != null)
-                    {
-                        message += "Inner Exception : " + ex.InnerException.Message;
-                    }
-
-                    throw new Exception(message);
-                }
-            }
-
-            return authResult.AccessToken;
-        }
-
-        public async Task<String> GetOnBehalfOfAccessToken(string resourceId)
+        
+        public async Task<String> GetOnBehalfOfAccessToken(string resourceId, string replyUrl)
         {
             string accessToken = null;
             AuthenticationResult result = null;

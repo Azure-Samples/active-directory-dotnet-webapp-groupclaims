@@ -239,7 +239,7 @@ namespace WebApp_GroupClaims_DotNet.Utils
                                                                          new DelegateAuthenticationProvider(
                                                                              async (requestMessage) =>
                                                                              {
-                                                                                 var token = await this.authHelper.GetAccessTokenForUserAsync(ConfigHelper.GraphResourceId, ConfigHelper.PostLogoutRedirectUri);
+                                                                                 var token = await this.authHelper.GetOnBehalfOfAccessToken(ConfigHelper.GraphResourceId, ConfigHelper.PostLogoutRedirectUri);
                                                                                  requestMessage.Headers.Authorization = new AuthenticationHeaderValue("bearer", token);
                                                                              }));
                 }
