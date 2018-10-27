@@ -1,0 +1,83 @@
+﻿@using Microsoft.Graph
+@model User
+
+@{
+    ViewBag.Title = "User Profile";
+}
+<h2>@ViewBag.Title.</h2>
+
+<table class="table table-bordered table-striped">
+    <tr>
+        <td>Display Name</td>
+        <td>@Model.DisplayName</td>
+    </tr>
+    <tr>
+        <td>First Name</td>
+        <td>@Model.GivenName</td>
+    </tr>
+    <tr>
+        <td>Last Name</td>
+        <td>@Model.Surname</td>
+    </tr>
+</table>
+<h3>Your Current Groups:</h3>
+@if ((bool)ViewData["overageOccurred"])
+{ 
+    <h4 style="color:blue">Group Membership Acquired via GraphAPI Calls. </h4>
+}
+else
+{
+    <h4 style="color:blue">Group Membership Acquired via Group Claims. </h4>
+}
+<table class="table table-striped table-bordered table-condensed table-hover">
+    <tr>
+        <th>Name</th>
+        <th>ObjectID</th>
+    </tr>
+
+    @foreach (Microsoft.Graph.Group group in (List<Microsoft.Graph.Group>)ViewData["myGroups"])
+    {
+        <tr>
+            <td>@group.DisplayName</td>
+            <td>@group.Id</td>
+        </tr>
+    }
+
+</table>
+
+<h3>Your Current Directory Roles:</h3>
+<table class="table table-striped table-bordered table-condensed table-hover">
+    <tr>
+        <th>Name</th>
+        <th>ObjectID</th>
+    </tr>
+
+    @foreach (Microsoft.Graph.DirectoryRole role in (List<Microsoft.Graph.DirectoryRole>)ViewData["myDirectoryRoles"])
+    {
+        <tr>
+            <td>@role.DisplayName</td>
+            <td>@role.Id</td>
+        </tr>
+    }
+</table>
+
+<h3>Your Current Claims:</h3>
+<table class="table table-striped table-bordered table-condensed table-hover">
+    <tr>
+        <th>Type</th>
+        <th>Value</th>
+    </tr>
+
+    @using System.Security.Claims 
+    @foreach (Claim claim in ClaimsPrincipal.Current.Claims)
+    {
+        if (claim.Type != "groups")
+        { 
+            <tr>
+                <td>@claim.Type</td>
+                <td>@claim.Value</td>
+            </tr>
+        }
+    }
+    
+</table>

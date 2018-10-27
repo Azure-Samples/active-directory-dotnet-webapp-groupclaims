@@ -60,7 +60,7 @@
             </div>
 
 
-            @foreach (WebAppGroupClaimsDotNet.Models.AadObject share in (List<WebAppGroupClaimsDotNet.Models.AadObject>)ViewData["shares"])
+            @foreach (WebApp_GroupClaims_DotNet.Models.AadObject share in (List<WebApp_GroupClaims_DotNet.Models.AadObject>)ViewData["shares"])
             {
                 if (share.AadObjectID != (string)ViewData["userId"])
                 { 

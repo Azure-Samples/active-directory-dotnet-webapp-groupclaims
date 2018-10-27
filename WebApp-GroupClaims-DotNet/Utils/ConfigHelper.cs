@@ -1,42 +1,77 @@
-﻿using System;
-using System.Collections.Generic;
+﻿/************************************************************************************************
+The MIT License (MIT)
+
+Copyright (c) 2015 Microsoft Corporation
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+***********************************************************************************************/
+
 using System.Configuration;
-using System.Globalization;
-using System.Linq;
-using System.Web;
+using WebApp_GroupClaims_DotNet.Models;
 
-namespace WebAppGroupClaimsDotNet.Utils
+namespace WebApp_GroupClaims_DotNet.Utils
 {
-    public class ConfigHelper
+    /// <summary>
+    /// Wraps the configuration
+    /// </summary>
+    public static class ConfigHelper
     {
-        // The AAD Instance is the instance of Azure, for example public Azure or Azure China.
-        // The Client ID is used by the application to uniquely identify itself to Azure AD.
-        // The App Key is a credential used to authenticate the application to Azure AD.  Azure AD supports password and certificate credentials.
-        // The GraphResourceId the resource ID of the AAD Graph API.  We'll need this to request a token to call the Graph API.
-        // The GraphApiVersion specifies which version of the AAD Graph API to call.
-        // The tenant is the domain name of the AAD tenant used to sign users in.
-        // The Post Logout Redirect Uri is the URL where the user will be redirected after they sign out.
-        // The Authority is the sign-in URL of the tenant.
+        /// <summary>
+        /// The AAD Instance is the instance of Azure, for example public Azure or Azure China.
+        /// </summary>
+        public static string AADInstance { get; } = Util.EnsureTrailingSlash(ConfigurationManager.AppSettings["ida:AADInstance"]);
 
-        private static readonly string aadInstance = ConfigurationManager.AppSettings["ida:AADInstance"];
-        private static string clientId = ConfigurationManager.AppSettings["ida:ClientId"];
-        private static string appKey = ConfigurationManager.AppSettings["ida:AppKey"];
-        private static string graphResourceId = ConfigurationManager.AppSettings["ida:GraphUrl"];
-        private static string graphApiVersion = ConfigurationManager.AppSettings["ida:GraphApiVersion"];
-        private static string tenant = ConfigurationManager.AppSettings["ida:Tenant"];
-        private static readonly string postLogoutRedirectUri = ConfigurationManager.AppSettings["ida:PostLogoutRedirectUri"];
-        private static readonly string authority = String.Format(CultureInfo.InvariantCulture, aadInstance, tenant);
+        /// <summary>
+        /// The AppKey is a credential used to authenticate the application to Azure AD.  Azure AD supports password and certificate credentials.
+        /// </summary>
+        public static string AppKey { get; } = ConfigurationManager.AppSettings["ida:ClientSecret"];
 
-        
-        public static string ClientId { get { return clientId; } }
-        internal static string AppKey { get { return appKey; } }
-        internal static string GraphResourceId { get { return graphResourceId; } }
-        internal static string GraphApiVersion { get { return graphApiVersion; } }
-        internal static string Tenant { get { return tenant; } }
-        internal static string Authority { get { return authority; } }
-        internal static string AadInstance { get { return aadInstance; } }
-        internal static string PostLogoutRedirectUri { get { return postLogoutRedirectUri; } }
-        internal static string GraphServiceRoot { get { return graphResourceId + '/' + tenant; } }
+        /// <summary>
+        /// The Client ID is used by the application to uniquely identify itself to Azure AD.
+        /// </summary>
+        public static string ClientId { get; } = ConfigurationManager.AppSettings["ida:ClientId"];
 
+        /// <summary>
+        /// The Post Logout Redirect Uri is the URL where the user will be redirected after they sign out.
+        /// </summary>
+        public static string PostLogoutRedirectUri { get; } = ConfigurationManager.AppSettings["ida:PostLogoutRedirectUri"];
+
+        /// <summary>
+        /// The TenantId is the DirectoryId of the Azure AD tenant being used in the sample
+        /// </summary>
+        public static string TenantId { get; } = ConfigurationManager.AppSettings["ida:TenantId"];
+
+        /// <summary>
+        /// The Authority is the sign-in URL of the tenant.
+        /// </summary>
+        public static string Authority = AADInstance + TenantId;
+
+        /// <summary>
+        /// The GraphResourceId the resource ID of the Microsoft Graph API.  We'll need this to request a token to call the Microsoft Graph API.
+        /// </summary>
+        public const string GraphResourceId = "https://graph.microsoft.com";
+
+        public static string MSGraphBaseUrl = $"{GraphResourceId}/v1.0";
+
+        /// <summary>
+        /// The AADGraphResourceId the resource ID of the AAD Graph API.  We'll need this to request a token to call the Azure AD Graph API.
+        /// </summary>
+        public static string AADGraphResourceId = "https://graph.windows.net";
     }
 }
