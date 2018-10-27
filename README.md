@@ -24,7 +24,7 @@ For more information about how the protocols work in this scenario and other sce
 
 > Looking for previous versions of this code sample? Check out the tags on the [releases](../../releases) GitHub page.
 
-![Overview](./ReadmeFiles/topology.png)
+![Overview](./ReadmeFiles/Topology.png)
 
 ### Scenario
 
@@ -244,7 +244,7 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 
 ## More information
 
-For more information, see [Azure Active Directory, now with Group Claims and Application Roles] (https://cloudblogs.microsoft.com/enterprisemobility/2014/12/18/azure-active-directory-now-with-group-claims-and-application-roles/)
+For more information, see [Azure Active Directory, now with Group Claims and Application Roles](https://cloudblogs.microsoft.com/enterprisemobility/2014/12/18/azure-active-directory-now-with-group-claims-and-application-roles/)
 
 - [Application roles](https://docs.microsoft.com/en-us/azure/architecture/multitenant-identity/app-roles)
 - [Azure AD Connect sync: Understanding Users, Groups, and Contacts](https://docs.microsoft.com/en-us/azure/active-directory/connect/active-directory-aadconnectsync-understanding-users-and-contacts)
