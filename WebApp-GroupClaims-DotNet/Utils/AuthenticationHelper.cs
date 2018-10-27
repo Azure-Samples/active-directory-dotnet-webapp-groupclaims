@@ -87,7 +87,7 @@ namespace WebApp_GroupClaims_DotNet.Utils
             {
                 result = await authContext.AcquireTokenSilentAsync(resourceId, clientCred, new UserIdentifier(Util.GetSignedInUsersObjectIdFromClaims(), UserIdentifierType.UniqueId));
             }
-            catch(AdalException ex)
+            catch (AdalException ex)
             {
                 result = await authContext.AcquireTokenAsync(resourceId, clientCred, userAssertion);
             }
