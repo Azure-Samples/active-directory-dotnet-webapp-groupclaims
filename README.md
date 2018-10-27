@@ -18,7 +18,7 @@ This sample shows how to build an MVC web application that uses Azure AD Groups 
 
 > An Azure AD Office Hours session covered Azure AD Approles and security groups, featuring this scenario and this sample. Watch the video [Using Security Groups and Application Roles in your apps](https://www.youtube.com/watch?v=V8VUPixLSiM)
 
-> The [v2 endpoint](https://docs.microsoft.com/en-us/azure/active-directory/develop/active-directory-appmodel-v2-overviewf Azure ) of Azure Active Directory does not yet supports groups claims in its token.
+> The [Azure AD v2 endpoint](https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-overview) of Azure Active Directory does not yet supports groups claims in its token.
 
 For more information about how the protocols work in this scenario and other scenarios, see [Authentication Scenarios for Azure AD](http://go.microsoft.com/fwlink/?LinkId=394414).
 
