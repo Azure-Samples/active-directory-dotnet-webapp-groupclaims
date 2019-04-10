@@ -64,23 +64,36 @@ If you want to use this automation, read the instructions in [App Creation Scrip
 
 #### Register the service app (TaskTrackerWebApp-GroupClaims)
 
-1. In the  **Azure Active Directory** pane, click on **App registrations** and choose **New application registration**.
-1. Enter a friendly name for the application, for example 'TaskTrackerWebApp-GroupClaims' and select 'Web app / API' as the *Application Type*.
-1. For the *sign-on URL*, enter the base URL for the sample. By default, this sample uses `https://localhost:44322/`.
-1. Click **Create** to create the application.
-1. In the succeeding page, Find the *Application ID* value and record it for later. You'll need it to configure the Visual Studio configuration file for this project.
-1. Then click on **Settings**, and choose **Properties**.
-1. For the App ID URI, replace the guid in the generated URI 'https://\<your_tenant_name\>/\<guid\>', with the name of your service, for example, 'https://\<your_tenant_name\>/TaskTrackerWebApp-GroupClaims' (replacing `<your_tenant_name>` with the name of your Azure AD tenant)
-1. From the **Settings** | **Reply URLs** page for your application, update the Reply URL for the application to be `https://localhost:44322/`
-1. From the Settings menu, choose **Keys** and add a new entry in the Password section:
-
-   - Type a key description (of instance `app secret`),
+1. In the  **Azure Active Directory** pane, click on **[App registrations](https://go.microsoft.com/fwlink/?linkid=2083908)** and choose **New registration**.
+1. When the **Register an application page** appears, enter your application's registration information:
+   - In the **Name** section, enter a meaningful application name that will be displayed to users of the app, for example `TaskTrackerWebApp-GroupClaims`.
+   - Leave **Supported account types** on the default setting of **Accounts in this organizational directory only**.
+   - For the **Redirect URI (optional)**, select Web and enter the base URL for the sample. By default, this sample uses `https://localhost:44322/`.
+1. Click **Register** to create the application.
+1. On the app **Overview** page, find the **Application (client) ID** value and record it for later. You'll need it to configure the Visual Studio configuration file for this project.
+1. Select the **Expose an API** section, and:
+   - Select **Add a scope**
+   - Set the Application ID URI to be '<https://<your_tenant_name>/TaskTrackerWebApp-GroupClaims'> (replacing <your_tenant_name> with the name of your Azure AD tenant)
+   - Enter the following parameters
+     - for **Scope name** use `access_as_user`
+     - Keep **Admins and users** for **Who can consent**
+     - in **Admin consent display name** type `Access MyWebAPI as a user`
+     - in **Admin consent description** type `Accesses the MyWebAPI Web API as a user`
+     - in **User consent display name** type `Access MyWebAPI as a user`
+     - in **User consent description** type `Accesses the MyWebAPI Web API as a user`
+     - Keep **State** as **Enabled**
+     - Select **Add scope**
+1. From the **Certificates & secrets** page, in the **Client secrets** section, choose **New client secret**:
+   - Type a key description (for instance `app secret`),
    - Select a key duration of either **In 1 year**, **In 2 years**, or **Never Expires**.
-   - When you save this page, the key value will be displayed, copy, and save the value in a safe location.
-   - You'll need this key later to configure the project in Visual Studio. This key value will not be displayed again, nor retrievable by any other means,
-     so record it as soon as it is visible from the Azure portal.
-1. Configure Permissions for your application. To that extent, in the Settings menu, choose the 'Required permissions' section and then,
-   click on **Add**, then **Select an API**, and type `Microsoft Graph` in the textbox. Then, click on  **Select Permissions** and select **Directory.Read.All**.
+   - When you press the **Add** button, the key value will be displayed, copy, and save the value in a safe location.
+   - You'll need this key later to configure the project in Visual Studio. This key value will not be displayed again, nor retrievable by any other means, so record it as soon as it is visible from the Azure portal.
+1. Configure Permissions for your application. Select the **API permissions** section
+   - Click the **Add a permission** button and then,
+   - Ensure that the **Microsoft APIs** tab is selected
+   - In the *Commonly used Microsoft APIs* section, click on **Microsoft Graph**
+   - In the **Delegated permissions** section, ensure that the right permissions are checked: **Directory.Read.All**, **Mail.Send**. Use the search box if necessary.
+   - Select the **Add permissions** button.
 
 ### Step 3: Configure your application to receive group claims
 
@@ -138,9 +151,9 @@ To deploy this application to Azure, you will publish it to an Azure Website.
 
 1. Navigate to the [Azure portal](https://portal.azure.com).
 1. On the top bar, click on your account and under the **Directory** list, choose the Active Directory tenant containing the `TaskTrackerWebApp-GroupClaims` application.
-1. On the applications tab, select the `TaskTrackerWebApp-GroupClaims` application.
-1. In the **Settings** | page for your application, update the Logout URL fields with the address of your service, for example [https://TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net](https://TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net)
-1. From the Settings -> Reply URLs menu, update the Sign-On URL, and Reply URL fields to the address of your service, for example [https://TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net](https://TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net). Save the configuration.
+1. On the [App registrations](https://go.microsoft.com/fwlink/?linkid=2083908) tab, select the `TaskTrackerWebApp-GroupClaims` application.
+1. In the **Authentication** | **Advanced Settings** page for your application, update the Logout URL field with the address of your service, for example [https://TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net](https://TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net)
+1. From the **Authentication** blade, update the Redirect URL fields to the address of your service, for example [https://TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net](https://TaskTrackerWebApp-GroupClaims-contoso.azurewebsites.net). Save the configuration.
 
 ## Processing Groups claim in tokens
 
