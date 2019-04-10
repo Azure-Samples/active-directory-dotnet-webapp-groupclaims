@@ -72,17 +72,7 @@ If you want to use this automation, read the instructions in [App Creation Scrip
 1. Click **Register** to create the application.
 1. On the app **Overview** page, find the **Application (client) ID** value and record it for later. You'll need it to configure the Visual Studio configuration file for this project.
 1. Select the **Expose an API** section, and:
-   - Select **Add a scope**
    - Set the Application ID URI to be '<https://<your_tenant_name>/TaskTrackerWebApp-GroupClaims'> (replacing <your_tenant_name> with the name of your Azure AD tenant)
-   - Enter the following parameters
-     - for **Scope name** use `access_as_user`
-     - Keep **Admins and users** for **Who can consent**
-     - in **Admin consent display name** type `Access MyWebAPI as a user`
-     - in **Admin consent description** type `Accesses the MyWebAPI Web API as a user`
-     - in **User consent display name** type `Access MyWebAPI as a user`
-     - in **User consent description** type `Accesses the MyWebAPI Web API as a user`
-     - Keep **State** as **Enabled**
-     - Select **Add scope**
 1. From the **Certificates & secrets** page, in the **Client secrets** section, choose **New client secret**:
    - Type a key description (for instance `app secret`),
    - Select a key duration of either **In 1 year**, **In 2 years**, or **Never Expires**.
@@ -92,7 +82,7 @@ If you want to use this automation, read the instructions in [App Creation Scrip
    - Click the **Add a permission** button and then,
    - Ensure that the **Microsoft APIs** tab is selected
    - In the *Commonly used Microsoft APIs* section, click on **Microsoft Graph**
-   - In the **Delegated permissions** section, ensure that the right permissions are checked: **Directory.Read.All**, **Mail.Send**. Use the search box if necessary.
+   - In the **Delegated permissions** section, ensure that the right permissions are checked: **Directory.Read.All**. Use the search box if necessary.
    - Select the **Add permissions** button.
 
 ### Step 3: Configure your application to receive group claims
