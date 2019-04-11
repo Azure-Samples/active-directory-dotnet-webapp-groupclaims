@@ -71,8 +71,6 @@ If you want to use this automation, read the instructions in [App Creation Scrip
    - For the **Redirect URI (optional)**, select Web and enter the base URL for the sample. By default, this sample uses `https://localhost:44322/`.
 1. Click **Register** to create the application.
 1. On the app **Overview** page, find the **Application (client) ID** value and record it for later. You'll need it to configure the Visual Studio configuration file for this project.
-1. Select the **Expose an API** section, and:
-   - Set the Application ID URI to be '<https://<your_tenant_name>/TaskTrackerWebApp-GroupClaims'> (replacing <your_tenant_name> with the name of your Azure AD tenant)
 1. From the **Certificates & secrets** page, in the **Client secrets** section, choose **New client secret**:
    - Type a key description (for instance `app secret`),
    - Select a key duration of either **In 1 year**, **In 2 years**, or **Never Expires**.
