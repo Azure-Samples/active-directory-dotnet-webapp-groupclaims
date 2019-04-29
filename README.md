@@ -88,6 +88,9 @@ If you want to use this automation, read the instructions in [App Creation Scrip
    - In the *Commonly used Microsoft APIs* section, click on **Microsoft Graph**
    - In the **Delegated permissions** section, ensure that the right permissions are checked: **Directory.Read.All**. Use the search box if necessary.
    - Select the **Add permissions** button.
+1. Configure Authentication for your application. Select the **Authentication** section
+    - Under *Advanced Settings* check the **ID_tokens** field in Implicit Grant.
+    - Save the changes.
 
 ### Step 3: Configure your application to receive group claims
 
