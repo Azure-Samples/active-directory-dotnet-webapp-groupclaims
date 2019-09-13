@@ -10,7 +10,7 @@ endpoint: AAD V1
 
 ![Build badge](https://identitydivision.visualstudio.com/_apis/public/build/definitions/a7934fdd-dcde-4492-a406-7fad6ac00e17/643/badge)
 
-> You might also be interested in this sample: https://github.com/azure-samples/ms-identity-aspnetcore-webapp-tutorial/tree/master/5-WebApp-AuthZ-Roles-Groups
+> You might also be interested in this sample: [Add authorization using groups & group claims to an ASP.NET Core Web app that signs-in users with the Microsoft identity platform](https://github.com/Azure-Samples/active-directory-aspnetcore-webapp-openidconnect-v2/blob/master/5-WebApp-AuthZ/5-2-Groups/README.md)
 >
 > This newer sample takes advantage of the Microsoft identity platform (formerly Azure AD v2.0).
 >
